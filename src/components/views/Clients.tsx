@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
-import { Users, ShoppingBag, TrendingUp, Pencil, X, ArrowLeft } from 'lucide-react';
+import { Users, ShoppingBag, TrendingUp, Pencil, X, ArrowLeft, Search } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface ClientsViewProps {
@@ -170,12 +170,13 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
 
       {/* Busca */}
       <div className="relative">
+        <Search size={16} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
         <input
           type="text"
           placeholder="Buscar cliente..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-6 py-4 rounded-[24px] border-2 border-slate-200 focus:border-[#BC2A1A] focus:outline-none font-semibold text-slate-800 placeholder:text-slate-400"
+          className="w-full pl-12 pr-6 py-4 bg-slate-100 border-none rounded-[24px] text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-[#BC2A1A]/20 transition-all placeholder:text-slate-400"
         />
       </div>
 

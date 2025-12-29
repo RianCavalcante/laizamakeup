@@ -1,0 +1,26 @@
+
+> Laiza Makeup@1.0.0 build C:\Users\isado\Laiza Makeup
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 8.8s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/page.tsx:86:13
+Type error: Property 'data' does not exist on type 'unknown'.
+
+[0m [90m 84 |[39m       [36mtry[39m {
+ [90m 85 |[39m         [36mconst[39m [
+[31m[1m>[22m[39m[90m 86 |[39m           { data[33m:[39m prodData[33m,[39m error[33m:[39m prodError }[33m,[39m
+ [90m    |[39m             [31m[1m^[22m[39m
+ [90m 87 |[39m           { data[33m:[39m repData[33m,[39m error[33m:[39m repError }[33m,[39m
+ [90m 88 |[39m           { data[33m:[39m salesData[33m,[39m error[33m:[39m salesError }[33m,[39m
+ [90m 89 |[39m           { data[33m:[39m sellersData[33m,[39m error[33m:[39m sellersError }[0m
+Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.

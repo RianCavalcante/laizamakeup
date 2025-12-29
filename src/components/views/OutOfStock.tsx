@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
-import { CheckCircle2, ImageIcon } from 'lucide-react';
+import { CheckCircle2, ImageIcon, Search } from 'lucide-react';
 
 interface OutOfStockProps {
     inventory: any[];
@@ -10,14 +10,31 @@ interface OutOfStockProps {
 }
 
 export const OutOfStockView = ({ inventory, setActiveTab, openReplenishModal }: OutOfStockProps) => {
-    const outOfStockItems = inventory.filter(p => p.currentStock === 0);
+    const [searchTerm, setSearchTerm] = useState('');
+    
+    const outOfStockItems = inventory
+        .filter(p => p.currentStock === 0)
+        .filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
         <div className="space-y-6 animate-in slide-in-from-right-6 duration-500 pb-10">
-        <header className="text-left">
-            <BackButton onClick={() => setActiveTab('overview')} />
-            <h1 className="text-3xl font-black text-[#BC2A1A] tracking-tighter uppercase leading-none">Stock Esgotado</h1>
-            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">Produtos que precisam de reposição</p>
+        <header className="text-left space-y-4">
+            <div>
+                <BackButton onClick={() => setActiveTab('overview')} />
+                <h1 className="text-3xl font-black text-[#BC2A1A] tracking-tighter uppercase leading-none mt-2">Stock Esgotado</h1>
+                <p className="text-[12px] font-bold text-slate-400 uppercase tracking-widest mt-1">Produtos que precisam de reposição</p>
+            </div>
+
+            <div className="relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                    type="text" 
+                    placeholder="Buscar produto esgotado..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-11 pr-5 py-3.5 bg-slate-100 border-none rounded-[18px] text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-[#BC2A1A]/20 transition-all placeholder:text-slate-400"
+                />
+            </div>
         </header>
 
         <div className="space-y-4">
@@ -43,8 +60,17 @@ export const OutOfStockView = ({ inventory, setActiveTab, openReplenishModal }: 
             </Card>
             )) : (
             <div className="flex flex-col items-center justify-center py-20 opacity-30 text-center">
-                <CheckCircle2 size={48} className="text-emerald-500 mb-2" />
-                <h3 className="text-sm font-black uppercase tracking-widest">Tudo em Dia!</h3>
+                {searchTerm ? (
+                     <>
+                        <Search size={48} className="text-slate-400 mb-2" />
+                        <h3 className="text-sm font-black uppercase tracking-widest">Nenhum resultado</h3>
+                     </>
+                ) : (
+                    <>
+                        <CheckCircle2 size={48} className="text-emerald-500 mb-2" />
+                        <h3 className="text-sm font-black uppercase tracking-widest">Tudo em Dia!</h3>
+                    </>
+                )}
             </div>
             )}
         </div>

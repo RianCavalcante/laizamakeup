@@ -88,17 +88,17 @@ function AppContent() {
           { data: salesData, error: salesError },
           { data: sellersData, error: sellersError }
         ] = await Promise.all([
-          withRetry(() =>
-            supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
+          withRetry(async () =>
+            await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
           ),
-          withRetry(() =>
-            supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
+          withRetry(async () =>
+            await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
-          withRetry(() =>
-            supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data')
+          withRetry(async () =>
+            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data')
           ),
-          withRetry(() => supabase.from('vendedores').select('id,nome'))
-        ]);
+          withRetry(async () => await supabase.from('vendedores').select('id,nome'))
+        ]) as any;
 
         const elapsed = Date.now() - startedAt;
         const target = Math.min(maxMs, Math.max(minMs, elapsed));
@@ -145,7 +145,12 @@ function AppContent() {
           })));
         }
 
-        if (sellersData) setSellers(sellersData);
+        if (sellersData) {
+          setSellers(sellersData.map((s: any) => ({
+            ...s,
+            name: s.nome ?? s.name
+          })));
+        }
         
         setIsLoaded(true);
         setIsInitialLoad(false);
@@ -214,7 +219,7 @@ function AppContent() {
         setProducts(prev => [...prev, formattedProduct]);
 
         if (Number(data.initialStock) > 0) {
-          addReplenishment(created.id, data.initialStock, data.purchasePrice, new Date().toISOString());
+          await addReplenishment(created.id, data.initialStock, data.purchasePrice, new Date().toISOString());
         }
       } else if (error) {
          console.error('Erro ao criar produto:', error);
@@ -225,6 +230,18 @@ function AppContent() {
 
   const deleteProduct = async (productId: string) => {
     setConfirmDelete({ open: true, productId, productName: products.find(p => p.id === productId)?.name });
+  };
+
+  const deleteSale = async (saleId: string) => {
+    if(!confirm('Tem certeza que deseja excluir esta venda? O estoque será reposto.')) return;
+
+    const { error } = await supabase.from('vendas').delete().eq('id', saleId);
+    if (!error) {
+       setSales(prev => prev.filter(s => s.id !== saleId));
+    } else {
+       console.error('Erro ao excluir venda:', error);
+       alert('Não foi possível excluir a venda.');
+    }
   };
 
   const addReplenishment = async (productId: string, quantity: number | string, unitPrice: number | string, date: string) => {
@@ -244,23 +261,32 @@ function AppContent() {
         ...created,
         productId: created.produto_id ?? created.product_id,
         unitPrice: created.preco_unitario ?? created.unit_price,
-        totalCost: created.custo_total ?? created.total_cost
+        totalCost: created.custo_total ?? created.total_cost,
+        quantity: created.quantidade ?? created.quantity,
+        date: created.data ?? created.date
       };
       setReplenishments(prev => [...prev, formatted]);
-    } else if (error) {
+      return true;
+    } else {
+      console.error('Erro ao repor estoque:', error);
       setActionError('Não foi possível salvar a reposição.');
+      return false;
     }
   };
 
-  const handleReplenishSubmit = () => {
+  const handleReplenishSubmit = async () => {
     if (!replenishModal.product || !replenishModal.qty) return;
-    addReplenishment(
+    
+    const success = await addReplenishment(
       replenishModal.product.id, 
       replenishModal.qty, 
-      replenishModal.product.purchasePrice, // Já normalizado no state
+      replenishModal.product.purchasePrice, 
       new Date(replenishModal.date).toISOString()
     );
-    setReplenishModal({ open: false, product: null, qty: '', date: new Date().toISOString().split('T')[0] });
+
+    if (success) {
+      setReplenishModal({ open: false, product: null, qty: '', date: new Date().toISOString().split('T')[0] });
+    }
   };
 
   const addSale = async (productId: string, quantity: number | string, totalValue: number | string, sellerIds: string[]) => {
@@ -401,6 +427,7 @@ function AppContent() {
                   setActiveTab={setActiveTab}
                   addSale={addSale}
                   formatCurrency={formatCurrency}
+                  deleteSale={deleteSale}
                   formatDate={formatDate}
               />
             )

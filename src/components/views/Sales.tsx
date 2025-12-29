@@ -3,6 +3,7 @@ import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
 import { SelectField } from '../ui/SelectField';
+import { Trash2 } from 'lucide-react';
 
 interface SalesViewProps {
     inventory: any[];
@@ -11,9 +12,75 @@ interface SalesViewProps {
     sellers: any[];
     setActiveTab: (tab: string) => void;
     addSale: (productId: string, quantity: number | string, totalValue: number | string, sellerIds: string[]) => void;
+    deleteSale: (saleId: string) => void;
     formatCurrency: (val: number) => string;
     formatDate: (date: string) => string;
 }
+
+const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDate }: any) => {
+    const [expanded, setExpanded] = useState(false);
+    const saleProfit = Number(sale.totalValue) - (Number(product?.purchasePrice || 0) * Number(sale.quantity));
+    const sellerNames = sale.sellerIds?.map((id: string) => sellers.find((sel: any) => sel.id === id)?.name).join(', ') || 'N/A';
+
+    return (
+        <Card noPadding className={`p-4 border-l-4 ${saleProfit >= 0 ? 'border-l-slate-400' : 'border-l-[#BC2A1A]'} relative group transition-all`}>
+            {/* Delete Button */}
+            <button 
+                onClick={() => deleteSale(sale.id)}
+                className="absolute top-2 right-2 text-slate-300 hover:text-red-500 transition-colors p-1 z-10"
+            >
+                <Trash2 size={14} />
+            </button>
+
+            {/* Header: Date & Seller */}
+            <div className="flex items-center gap-2 mb-1">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{formatDate(sale.date)}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{sellerNames}</span>
+            </div>
+
+            {/* Main Content: Product & Financials */}
+            <div className="flex justify-between items-end mb-2">
+                <div className="flex flex-col pr-4">
+                    <span className="font-black text-slate-900 text-sm uppercase leading-tight max-w-[180px] break-words">
+                        {product?.name || 'Item'} <span className="text-slate-400 text-xs">(x{sale.quantity})</span>
+                    </span>
+                </div>
+                <div className="text-right flex flex-col items-end min-w-[80px]">
+                    <span className="block font-black text-slate-800 text-sm leading-none mb-1">
+                        {formatCurrency(Number(sale.totalValue))}
+                    </span>
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md ${saleProfit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-[#BC2A1A]/10 text-[#BC2A1A]'}`}>
+                        {saleProfit > 0 ? '+' : ''}{formatCurrency(saleProfit)}
+                    </span>
+                </div>
+            </div>
+
+            {/* Details Toggle */}
+            <button 
+                onClick={() => setExpanded(!expanded)}
+                className="w-full py-1.5 flex items-center justify-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors border-t border-slate-100 mt-2"
+            >
+                {expanded ? 'Ocultar Detalhes' : 'Ver Detalhes'}
+                <div className={`transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}>▼</div>
+            </button>
+
+            {/* Collapsible Details */}
+            {expanded && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 bg-slate-50/50 rounded-xl p-3 mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Custo Un.</span>
+                        <span className="text-[10px] font-bold text-slate-600">{formatCurrency(Number(product?.purchasePrice || 0))}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Venda Un.</span>
+                        <span className="text-[10px] font-bold text-slate-600">{formatCurrency(Number(sale.totalValue) / Number(sale.quantity))}</span>
+                    </div>
+                </div>
+            )}
+        </Card>
+    );
+};
 
 export const SalesView = ({ 
     inventory, 
@@ -22,6 +89,7 @@ export const SalesView = ({
     sellers, 
     setActiveTab, 
     addSale, 
+    deleteSale,
     formatCurrency, 
     formatDate 
 }: SalesViewProps) => {
@@ -61,7 +129,18 @@ export const SalesView = ({
                     const prod = products.find(p => p.id === selectedProd);
                     if(prod) setTotal(prod.basePrice * Number(e.target.value));
                 }} />
-                <InputField label="Recebido" type="number" value={total} onChange={(e: any) => setTotal(e.target.value)} />
+                <InputField 
+                    label="Valor Total" 
+                    value={total === '' ? '' : formatCurrency(Number(total))} 
+                    onChange={(e: any) => {
+                        const rawValue = e.target.value.replace(/\D/g, '');
+                        if (rawValue === '') {
+                            setTotal('');
+                        } else {
+                            setTotal(Number(rawValue) / 100);
+                        }
+                    }} 
+                />
             </div>
 
             <div className="space-y-3">
@@ -86,23 +165,19 @@ export const SalesView = ({
 
         <div className="space-y-4 text-left">
             <h3 className="font-black text-[11px] text-slate-400 uppercase tracking-[0.2em] ml-2">Histórico Recente</h3>
-            {sales.length > 0 ? [...sales].reverse().slice(0, 5).map(s => {
-            const product = products.find(p => p.id === s.productId);
-            const saleProfit = Number(s.totalValue) - (Number(product?.purchasePrice || 0) * Number(s.quantity));
-            return (
-                <Card key={s.id} noPadding className="p-4 border-l-4 border-l-emerald-500">
-                <div className="flex justify-between items-center text-left">
-                    <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">{formatDate(s.date)}</span>
-                    <span className="font-black text-slate-900 text-xs uppercase">{product?.name || 'Item'} (x{s.quantity})</span>
-                    </div>
-                    <div className="text-right">
-                    <span className="block font-black text-[#BC2A1A] text-sm">+{formatCurrency(saleProfit)}</span>
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Lucro Real</span>
-                    </div>
-                </div>
-                </Card>
-            );
+            {sales.length > 0 ? [...sales].reverse().slice(0, 20).map(s => {
+                const product = products.find(p => p.id === s.productId);
+                return (
+                    <SaleCard 
+                        key={s.id} 
+                        sale={s} 
+                        product={product} 
+                        sellers={sellers} 
+                        deleteSale={deleteSale} 
+                        formatCurrency={formatCurrency} 
+                        formatDate={formatDate} 
+                    />
+                );
             }) : <p className="text-center py-10 opacity-20 font-black uppercase text-[10px] tracking-widest">Sem vendas hoje</p>}
         </div>
         </div>

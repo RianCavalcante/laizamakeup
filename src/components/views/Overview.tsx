@@ -54,8 +54,8 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
             </defs>
             <rect width="100%" height="100%" fill="url(#grid1)" mask="url(#mask1)"/>
           </svg>
-          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Vendas Totais</p>
-          <h2 className="text-xl font-black text-slate-900 leading-tight relative z-10">{formatCurrency(totalRevenue)}</h2>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Qtd. Vendas</p>
+          <h2 className="text-xl font-black text-slate-900 leading-tight relative z-10">{sales.length} vendas</h2>
         </Card>
         
         <Card className="min-h-[85px] flex flex-col justify-center text-left hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden" onClick={() => setActiveTab('outOfStock')}>
@@ -96,8 +96,8 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
           </svg>
           <div className="flex flex-col h-full relative z-10">
             <div className="flex-1 flex flex-col justify-center">
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Lucro Líquido</p>
-              <h2 className="text-2xl font-black text-slate-900 leading-none tracking-tight">{formatCurrency(totalProfit)}</h2>
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Faturamento</p>
+              <h2 className="text-2xl font-black text-slate-900 leading-none tracking-tight">{formatCurrency(totalRevenue)}</h2>
             </div>
             <div className="flex justify-end mt-2">
               <div className="w-8 h-8 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">

@@ -1,0 +1,26 @@
+
+> Laiza Makeup@1.0.0 build C:\Users\isado\Laiza Makeup
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 7.2s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/page.tsx:92:13
+Type error: Type 'PostgrestFilterBuilder<any, any, any, { id: any; nome: any; preco_compra: any; preco_venda: any; imagem: any; ativo: any; }[], "produtos", unknown, "GET">' is missing the following properties from type 'Promise<unknown>': catch, finally, [Symbol.toStringTag]
+
+[0m [90m 90 |[39m         ] [33m=[39m [36mawait[39m [33mPromise[39m[33m.[39mall([
+ [90m 91 |[39m           withRetry(() [33m=>[39m
+[31m[1m>[22m[39m[90m 92 |[39m             supabase[33m.[39m[36mfrom[39m([32m'produtos'[39m)[33m.[39mselect([32m'id,nome,preco_compra,preco_venda,imagem,ativo'[39m)
+ [90m    |[39m             [31m[1m^[22m[39m
+ [90m 93 |[39m           )[33m,[39m
+ [90m 94 |[39m           withRetry(() [33m=>[39m
+ [90m 95 |[39m             supabase[33m.[39m[36mfrom[39m([32m'reabastecimentos'[39m)[33m.[39mselect([32m'id,produto_id,quantidade,preco_unitario,custo_total,data'[39m)[0m
+Next.js build worker exited with code: 1 and signal: null
+ ELIFECYCLE  Command failed with exit code 1.
