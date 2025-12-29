@@ -11,7 +11,7 @@ export const MobileHeader = ({ activeTab, setActiveTab }: MobileHeaderProps) => 
 
   const menuItems = [
     { id: 'overview', icon: LayoutDashboard, label: 'Painel' },
-    { id: 'products', icon: Package, label: 'Stock' },
+    { id: 'products', icon: Package, label: 'Produtos' },
     { id: 'outOfStock', icon: PackageX, label: 'Esgotados' },
     { id: 'sales', icon: ShoppingCart, label: 'Vendas' },
     { id: 'clients', icon: Users, label: 'Clientes' }
