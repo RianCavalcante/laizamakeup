@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
-import { PlusCircle, ImageIcon, Plus, Pencil, Trash2, X, Camera, Upload } from 'lucide-react';
+import { PlusCircle, ImageIcon, Plus, Pencil, Trash2, X, Camera, Upload, ArrowLeft } from 'lucide-react';
 
 interface ProductsViewProps {
   inventory: any[];
@@ -28,6 +28,7 @@ export const ProductsView = ({
   setReplenishments
 }: ProductsViewProps) => {
   const [formData, setFormData] = useState<any>({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '' });
+  const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -123,40 +124,53 @@ export const ProductsView = ({
     document.getElementById('add-product-modal')?.classList.remove('hidden');
   };
 
+  // Filtrar produtos pela busca
+  const filteredInventory = inventory.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 animate-in slide-in-from-bottom-6 duration-500 pb-10">
       <header className="text-left">
         <BackButton onClick={() => setActiveTab('overview')} />
-        <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Stock</h1>
+        <div className="flex items-center gap-3 mt-1">
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Stock</h1>
+          <span className="bg-[#FFDCD8] text-[#BC2A1A] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+            {inventory.length} produtos
+          </span>
+        </div>
       </header>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex justify-end">
         <button 
           onClick={openNewModal}
-          className="bg-[#BC2A1A] text-white py-5 rounded-[24px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all"
+          className="bg-[#BC2A1A] text-white py-4 px-6 rounded-[24px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all w-full sm:w-auto"
         >
           <PlusCircle size={24} /> 
-          <span className="font-black uppercase text-sm tracking-widest">Novo</span>
-        </button>
-
-        <button 
-          onClick={() => csvInputRef.current?.click()}
-          className="bg-slate-900 text-white py-5 rounded-[24px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all"
-        >
-          <Upload size={24} /> 
-          <span className="font-black uppercase text-sm tracking-widest">Importar CSV</span>
-          <input 
-            type="file" 
-            ref={csvInputRef} 
-            onChange={handleCSVImport} 
-            accept=".csv" 
-            className="hidden" 
-          />
+          <span className="font-black uppercase text-sm tracking-widest">Novo Produto</span>
         </button>
       </div>
 
+      {/* Campo de Busca */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Buscar produto..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full px-6 py-4 rounded-[24px] border-2 border-slate-200 focus:border-[#BC2A1A] focus:outline-none font-semibold text-slate-800 placeholder:text-slate-400"
+        />
+      </div>
+
       <div className="space-y-4">
-        {inventory.map(p => (
+        {filteredInventory.length === 0 ? (
+          <Card className="p-6 rounded-[24px] text-center">
+            <p className="text-slate-500">
+              {searchTerm ? 'Nenhum produto encontrado' : 'Nenhum produto cadastrado ainda'}
+            </p>
+          </Card>
+        ) : (
+          filteredInventory.map(p => (
           <Card key={p.id} noPadding className="p-4 text-left">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 rounded-[20px] bg-slate-50 border border-[#FFDCD8] overflow-hidden flex-shrink-0">
@@ -170,7 +184,9 @@ export const ProductsView = ({
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-emerald-600 text-xs">+{formatCurrency(getUnitProfit(p.purchasePrice, p.basePrice))} lucro</span>
+                  <span className={`font-bold text-xs ${getUnitProfit(p.purchasePrice, p.basePrice) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {getUnitProfit(p.purchasePrice, p.basePrice) > 0 ? '+' : ''}{formatCurrency(getUnitProfit(p.purchasePrice, p.basePrice))} lucro
+                  </span>
                   <div className="flex items-center gap-2">
                      <button onClick={() => openEditModal(p)} className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-[#BC2A1A]">
                         <Pencil size={16} />
@@ -189,21 +205,22 @@ export const ProductsView = ({
               </div>
             </div>
           </Card>
-        ))}
+        ))
+        )}
       </div>
 
       <div id="add-product-modal" className="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4 z-[100] overflow-y-auto">
-        <Card className="w-full max-w-md p-8 space-y-6 rounded-t-[40px] sm:rounded-[40px] border-none">
-          <div className="flex justify-between items-center text-left">
-             <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">{formData.id ? 'Editar' : 'Registo'}</h2>
-             <button onClick={() => document.getElementById('add-product-modal')?.classList.add('hidden')} className="w-10 h-10 flex items-center justify-center text-slate-300">
-                <X size={24} />
-             </button>
+        <div className="w-full max-w-md p-8 space-y-6 rounded-t-[40px] sm:rounded-[40px] bg-white shadow-2xl text-left">
+          <div className="flex items-center gap-4">
+            <button onClick={() => document.getElementById('add-product-modal')?.classList.add('hidden')} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
+              <ArrowLeft size={20} />
+            </button>
+            <h2 className="text-xl font-black text-slate-900 uppercase leading-none">{formData.id ? 'Editar' : 'Registo'}</h2>
           </div>
           
-          <div className="flex flex-col items-center gap-4 py-2">
-             <div className="w-28 h-28 rounded-[32px] bg-[#FFDCD8]/30 border-2 border-dashed border-[#FFDCD8] overflow-hidden flex items-center justify-center relative active:scale-95 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                {formData.image ? <img src={formData.image} className="w-full h-full object-cover" alt="" /> : <Camera size={28} className="text-[#BC2A1A]/40" />}
+          <div className="flex flex-col items-center gap-2 py-2">
+             <div className="w-16 h-16 rounded-[20px] bg-[#FFDCD8]/30 border-2 border-dashed border-[#FFDCD8] overflow-hidden flex items-center justify-center relative active:scale-95 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                {formData.image ? <img src={formData.image} className="w-full h-full object-cover" alt="" /> : <Camera size={18} className="text-[#BC2A1A]/40" />}
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" capture="environment" className="hidden" />
              </div>
              <p className="text-[10px] font-black text-[#BC2A1A] uppercase tracking-widest">Carregar Foto</p>
@@ -218,6 +235,15 @@ export const ProductsView = ({
             {!formData.id && (
                <InputField label="Quantidade Inicial" type="number" value={formData.initialStock} onChange={(e: any) => setFormData({ ...formData, initialStock: e.target.value })} placeholder="0" />
             )}
+
+            {(Number(formData.basePrice) > 0 && Number(formData.purchasePrice) > 0) && (
+               <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">Lucro Estimado</p>
+                  <p className="text-lg font-black text-emerald-700">
+                     {formatCurrency(Number(formData.basePrice) - Number(formData.purchasePrice))}
+                  </p>
+               </div>
+            )}
           </div>
 
           <button onClick={() => {
@@ -229,7 +255,7 @@ export const ProductsView = ({
           }} className="w-full py-5 bg-[#BC2A1A] text-white rounded-[24px] font-black uppercase text-sm tracking-widest shadow-lg active:scale-95">
             Confirmar
           </button>
-        </Card>
+        </div>
       </div>
     </div>
   );

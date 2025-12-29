@@ -13,6 +13,7 @@ import { Overview } from '../components/views/Overview';
 import { ProductsView } from '../components/views/Products';
 import { OutOfStockView } from '../components/views/OutOfStock';
 import { SalesView } from '../components/views/Sales';
+import { ClientsView } from '../components/views/Clients';
 import { ImportView } from '../components/views/Import';
 import { Card } from '../components/ui/Card';
 import { InputField } from '../components/ui/InputField';
@@ -175,39 +176,49 @@ function AppContent() {
   const saveProduct = async (data: any) => {
     if (data.id) {
       // Edição
-      const { error } = await supabase.from('products').update({
-        name: data.name,
-        purchase_price: Number(data.purchasePrice),
-        base_price: Number(data.basePrice),
-        image: data.image
+      const { error } = await supabase.from('produtos').update({
+        nome: data.name,
+        preco_compra: Number(data.purchasePrice),
+        preco_venda: Number(data.basePrice),
+        imagem: data.image
       }).eq('id', data.id);
 
       if (!error) {
-        setProducts(products.map(p => p.id === data.id ? { ...p, ...data } : p));
+        setProducts(prev => prev.map(p => p.id === data.id ? { 
+          ...p, 
+          ...data,
+          purchasePrice: Number(data.purchasePrice),
+          basePrice: Number(data.basePrice)
+        } : p));
       }
     } else {
       // Criação
       const newProduct = {
-        name: data.name,
-        purchase_price: Number(data.purchasePrice),
-        base_price: Number(data.basePrice),
-        image: data.image || null,
-        active: true
+        nome: data.name,
+        preco_compra: Number(data.purchasePrice),
+        preco_venda: Number(data.basePrice),
+        imagem: data.image || null,
+        ativo: true
       };
       
-      const { data: created, error } = await supabase.from('products').insert(newProduct).select().single();
+      const { data: created, error } = await supabase.from('produtos').insert(newProduct).select().single();
       
       if (created && !error) {
         const formattedProduct = {
           ...created,
-          purchasePrice: created.purchase_price,
-          basePrice: created.base_price
+          name: created.nome,
+          purchasePrice: created.preco_compra,
+          basePrice: created.preco_venda,
+          image: created.imagem
         };
-        setProducts([...products, formattedProduct]);
+        setProducts(prev => [...prev, formattedProduct]);
 
         if (Number(data.initialStock) > 0) {
           addReplenishment(created.id, data.initialStock, data.purchasePrice, new Date().toISOString());
         }
+      } else if (error) {
+         console.error('Erro ao criar produto:', error);
+         alert('Erro ao criar produto. Verifique se os dados estão corretos.');
       }
     }
   };
@@ -395,9 +406,13 @@ function AppContent() {
             )
           )}
 
-          {activeTab === 'import' && (
-            <ImportView />
+          {activeTab === 'clients' && (
+            <ClientsView 
+              setActiveTab={setActiveTab}
+              formatCurrency={formatCurrency}
+            />
           )}
+
         </div>
       </main>
 
@@ -441,7 +456,7 @@ function AppContent() {
                   if (!confirmDelete.productId) return;
                   const { error } = await supabase.from('produtos').delete().eq('id', confirmDelete.productId);
                   if (!error) {
-                    setProducts(products.filter(p => p.id !== confirmDelete.productId));
+                    setProducts(prev => prev.filter(p => p.id !== confirmDelete.productId));
                   } else {
                     setActionError('Não foi possível excluir o produto.');
                   }

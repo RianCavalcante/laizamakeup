@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Package, PackageX, ShoppingCart, Upload } from 'lucide-react';
+import { LayoutDashboard, Package, PackageX, ShoppingCart, Upload, Users } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -12,7 +12,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: 'products', icon: Package, label: 'Stock' },
     { id: 'outOfStock', icon: PackageX, label: 'Esgotados' },
     { id: 'sales', icon: ShoppingCart, label: 'Vendas' },
-    { id: 'import', icon: Upload, label: 'Importar' }
+    { id: 'clients', icon: Users, label: 'Clientes' }
   ];
 
   return (

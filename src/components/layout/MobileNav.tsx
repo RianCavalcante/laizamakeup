@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Package, PackageX, ShoppingCart, Upload } from 'lucide-react';
+import { LayoutDashboard, Package, PackageX, ShoppingCart, Upload, Users } from 'lucide-react';
 
 interface MobileNavProps {
   activeTab: string;
@@ -14,8 +14,7 @@ export const MobileNav = ({ activeTab, setActiveTab, zeradoCount }: MobileNavPro
         { id: 'overview', icon: LayoutDashboard },
         { id: 'products', icon: Package },
         { id: 'outOfStock', icon: PackageX, badge: zeradoCount },
-        { id: 'sales', icon: ShoppingCart },
-        { id: 'import', icon: Upload },
+        { id: 'clients', icon: Users },
       ].map(item => (
         <button key={item.id} onClick={() => setActiveTab(item.id)}
           className={`relative w-14 h-14 rounded-2xl transition-all duration-300 flex items-center justify-center ${activeTab === item.id ? 'bg-[#BC2A1A] text-white scale-110 shadow-lg shadow-[#BC2A1A]/30' : 'text-slate-500'}`}>
