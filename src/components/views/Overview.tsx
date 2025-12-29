@@ -29,7 +29,14 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
-      <header className="flex flex-col gap-1 text-left">
+      <header className="flex flex-col gap-2 text-left">
+        {/* Logo Mobile */}
+        <div className="lg:hidden mb-2">
+          <h2 className="text-xl font-black tracking-tighter uppercase leading-none">
+            <span className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Laiza</span>{' '}
+            <span className="bg-gradient-to-r from-[#BC2A1A] to-[#d63426] bg-clip-text text-transparent">Makeup</span>
+          </h2>
+        </div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">Painel Geral</h1>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Gestão de Estoque</p>
         <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 w-fit px-3 py-1.5 rounded-full font-bold text-[9px] uppercase tracking-widest mt-1">
@@ -55,7 +62,7 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
             <rect width="100%" height="100%" fill="url(#grid1)" mask="url(#mask1)"/>
           </svg>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Qtd. Vendas</p>
-          <h2 className="text-xl font-black text-slate-900 leading-tight relative z-10">{sales.length} vendas</h2>
+          <h2 className="text-2xl font-black text-slate-900 leading-tight relative z-10">{sales.length} vendas</h2>
         </Card>
         
         <Card className="min-h-[85px] flex flex-col justify-center text-left hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden" onClick={() => setActiveTab('outOfStock')}>
@@ -75,7 +82,7 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
             <rect width="100%" height="100%" fill="url(#grid2)" mask="url(#mask2)"/>
           </svg>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Esgotados</p>
-          <h2 className={`text-xl font-black ${zerados > 0 ? 'text-[#BC2A1A]' : 'text-slate-900'} relative z-10`}>{zerados} itens</h2>
+          <h2 className={`text-2xl font-black ${zerados > 0 ? 'text-[#BC2A1A]' : 'text-slate-900'} relative z-10`}>{zerados} itens</h2>
         </Card>
 
         <Card className="shadow-sm text-left hover:shadow-md transition-shadow relative overflow-hidden min-h-[110px]">
@@ -126,7 +133,7 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
           <div className="flex flex-col h-full relative z-10">
             <div className="flex-1 flex flex-col justify-center">
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total em Stock</p>
-              <h2 className="text-xl font-black text-slate-900 leading-none">{inventory.length} <span className="text-[9px] uppercase text-slate-400">produtos</span></h2>
+              <h2 className="text-2xl font-black text-slate-900 leading-none">{inventory.length} <span className="text-[9px] uppercase text-slate-400">produtos</span></h2>
             </div>
             <div className="flex justify-end mt-2">
               <div className="w-8 h-8 bg-slate-50 text-slate-400 rounded-full flex items-center justify-center">

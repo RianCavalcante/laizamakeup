@@ -9,4 +9,12 @@
 
 body {
   @apply antialiased;
+  overflow-y: scroll; /* Always show scrollbar space to prevent layout shift */
+}
+
+/* Prevent body scroll when modals are open */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
