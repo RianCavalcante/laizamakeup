@@ -8,6 +8,7 @@ import ProtectedRoute from '../components/auth/ProtectedRoute';
 
 // Componentes
 import { Sidebar } from '../components/layout/Sidebar';
+import { MobileHeader } from '../components/layout/MobileHeader';
 import { MobileNav } from '../components/layout/MobileNav';
 import { Overview } from '../components/views/Overview';
 import { ProductsView } from '../components/views/Products';
@@ -356,8 +357,9 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
     <div className="flex flex-col min-h-screen bg-[#FFDCD8]/20 text-slate-900 font-sans overflow-x-hidden">
       
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <MobileHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      <main className="flex-1 lg:ml-80 px-5 py-8 md:px-14 md:py-14">
+      <main className="flex-1 lg:ml-80 px-5 py-8 md:px-14 md:py-14 pt-20 lg:pt-8">{/* pt-20 for mobile header */}
         <div className="max-w-4xl mx-auto pb-32 space-y-4">
           {loadingError && (
             <div className="rounded-2xl bg-[#BC2A1A]/10 border border-[#BC2A1A]/30 text-[#BC2A1A] px-4 py-3 text-sm font-semibold">

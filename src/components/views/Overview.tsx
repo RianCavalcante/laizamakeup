@@ -30,13 +30,6 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
       <header className="flex flex-col gap-2 text-left">
-        {/* Logo Mobile */}
-        <div className="lg:hidden mb-2">
-          <h2 className="text-xl font-black tracking-tighter uppercase leading-none">
-            <span className="bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Laiza</span>{' '}
-            <span className="bg-gradient-to-r from-[#BC2A1A] to-[#d63426] bg-clip-text text-transparent">Makeup</span>
-          </h2>
-        </div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-tight">Painel Geral</h1>
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">Gestão de Estoque</p>
         <div className="inline-flex items-center gap-2 bg-slate-100 text-slate-600 w-fit px-3 py-1.5 rounded-full font-bold text-[9px] uppercase tracking-widest mt-1">
