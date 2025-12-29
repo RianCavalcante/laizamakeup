@@ -106,7 +106,7 @@ export const SalesView = ({
     };
 
     return (
-        <div className="space-y-6 animate-in slide-in-from-left-6 duration-500 pb-20">
+        <div className="space-y-6 animate-in slide-in-from-left-6 duration-500 pb-32">
         <header className="text-left">
             <BackButton onClick={() => setActiveTab('overview')} />
             <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Vendas</h1>

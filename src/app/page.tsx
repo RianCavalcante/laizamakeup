@@ -40,8 +40,8 @@ const getUnitProfit = (cost: any, price: any) => {
 
 // --- Componente Principal ---
 
-function AppContent() {
-  const [activeTab, setActiveTab] = useState('overview');
+export function AppContent({ initialTab = 'overview' }: { initialTab?: string }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
