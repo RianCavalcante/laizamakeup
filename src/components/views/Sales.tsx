@@ -173,11 +173,10 @@ const ClientSearch = ({ clients, value, onChange, onSelect }: any) => {
                         onChange(e.target.value);
                         setShowSuggestions(true);
                     }}
-                    onFocus={() => !isMobile && setShowSuggestions(true)}
+                    onFocus={() => setShowSuggestions(true)}
                     placeholder="Ex: Maria Silva"
                     autoComplete="off"
-                    readOnly={isMobile}
-                    className={`${isMobile ? 'cursor-pointer' : ''} w-full px-5 py-4 bg-[#FFDCD8]/10 border border-[#FFDCD8] rounded-[20px] focus:ring-4 focus:ring-[#BC2A1A]/10 focus:border-[#BC2A1A] outline-none transition-all text-sm placeholder:text-slate-300 shadow-sm`}
+                    className={`${isMobile ? 'cursor-text' : ''} w-full px-5 py-4 bg-[#FFDCD8]/10 border border-[#FFDCD8] rounded-[20px] focus:ring-4 focus:ring-[#BC2A1A]/10 focus:border-[#BC2A1A] outline-none transition-all text-sm placeholder:text-slate-300 shadow-sm`}
                 />
                 {isMobile && !value && (
                     <div className="absolute right-4 bottom-4 text-[#BC2A1A]">
