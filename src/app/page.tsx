@@ -98,7 +98,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
           withRetry(async () =>
-            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id')
+            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id, clientes(nome)')
           ),
           withRetry(async () => await supabase.from('vendedores').select('id,nome')),
           withRetry(async () => await supabase.from('clientes').select('*'))
@@ -145,7 +145,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             totalValue: s.valor_total ?? s.total_value,
             sellerIds: s.vendedor_ids ?? s.seller_ids,
             quantity: s.quantidade ?? s.quantity,
-            date: s.data ?? s.date
+            date: s.data ?? s.date,
+            clienteNome: s.clientes?.nome // Mapeia o nome do cliente vindo da relação
           })));
         }
 
@@ -366,7 +367,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             sellerIds: created.vendedor_ids ?? created.seller_ids,
             quantity: created.quantidade ?? created.quantity,
             date: created.data ?? created.date,
-            clienteId: created.cliente_id
+            clienteId: created.cliente_id,
+            clienteNome: customerName // Nome disponível no escopo da função addSale
         };
         setSales([...sales, formatted]);
     } else if (error) {
@@ -497,6 +499,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             <ClientsView 
               setActiveTab={setActiveTab}
               formatCurrency={formatCurrency}
+              sellers={sellers} // Passando lista de vendedores
             />
           )}
 

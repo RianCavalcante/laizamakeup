@@ -37,6 +37,12 @@ const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDa
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{formatDate(sale.date)}</span>
                 <span className="w-1 h-1 rounded-full bg-slate-300" />
                 <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{sellerNames}</span>
+                {sale.clienteNome && (
+                   <>
+                     <span className="w-1 h-1 rounded-full bg-slate-300" />
+                     <span className="text-[10px] font-bold text-[#BC2A1A] uppercase tracking-wider">{sale.clienteNome}</span>
+                   </>
+                )}
             </div>
 
             {/* Main Content: Product & Financials */}

@@ -8,6 +8,7 @@ import { supabase } from '../../lib/supabase';
 interface ClientsViewProps {
   setActiveTab: (tab: string) => void;
   formatCurrency: (val: number) => string;
+  sellers: any[]; // Recebe lista de vendedores
 }
 
 type Cliente = {
@@ -34,9 +35,9 @@ type ClienteComVendas = Cliente & {
   total_gasto: number;
 };
 
-export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) => {
+export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsViewProps) => {
   const [clientes, setClientes] = useState<ClienteComVendas[]>([]);
-  const [vendedores, setVendedores] = useState<any[]>([]); // Novo estado para vendedores
+  // const [vendedores, setVendedores] = useState<any[]>([]); // Removido: usa prop sellers
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editModal, setEditModal] = useState<{ open: boolean; cliente: Cliente | null }>({ open: false, cliente: null });
@@ -45,25 +46,11 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
   const [addForm, setAddForm] = useState({ nome: '', telefone: '' });
 
   useEffect(() => {
-    carregarDados();
+    carregarClientes();
   }, []);
 
-  const carregarDados = async () => {
-    setLoading(true);
-    try {
-        // Buscar vendedores primeiro
-        const { data: sellersData } = await supabase.from('vendedores').select('*');
-        if(sellersData) setVendedores(sellersData);
-
-        await carregarClientes();
-    } catch (error) {
-        console.error("Erro ao carregar dados iniciais", error);
-        setLoading(false);
-    }
-  };
-
   const carregarClientes = async () => {
-    // setLoading(true); // Removido pois carregado no carregarDados ou gerenciaremos estado global
+    setLoading(true); // Re-habilitado loading global
     try {
       // Buscar clientes
       const { data: clientesData, error: clientesError } = await supabase
@@ -256,7 +243,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
           </Card>
         ) : (
           clientesFiltrados.map((cliente) => (
-            <ClientCard key={cliente.id} cliente={cliente} openEditModal={openEditModal} formatCurrency={formatCurrency} deleteClient={handleDeleteClient} vendedores={vendedores} />
+            <ClientCard key={cliente.id} cliente={cliente} openEditModal={openEditModal} formatCurrency={formatCurrency} deleteClient={handleDeleteClient} vendedores={sellers} />
           ))
         )}
       </div>
