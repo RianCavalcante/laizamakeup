@@ -186,6 +186,8 @@ export const SalesView = ({
     const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
+    
+    console.log('SalesView clients prop:', clients?.length, clients);
 
     const handleClientSelect = (client: any) => {
         setCustomerName(client.nome);

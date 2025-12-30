@@ -45,6 +45,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
   const [editForm, setEditForm] = useState({ nome: '', telefone: '' });
   const [addModal, setAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ nome: '', telefone: '' });
+  const [confirmDeleteClient, setConfirmDeleteClient] = useState<{ open: boolean; id: string | null; nome: string }>({ open: false, id: null, nome: '' });
 
   useEffect(() => {
     carregarClientes();
@@ -157,9 +158,13 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
   };
 
   const handleDeleteClient = async (id: string, nome: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o cliente ${nome}?`)) return;
+    setConfirmDeleteClient({ open: true, id, nome });
+  };
 
-    const { error } = await supabase.from('clientes').delete().eq('id', id);
+  const confirmDelete = async () => {
+    if (!confirmDeleteClient.id) return;
+
+    const { error } = await supabase.from('clientes').delete().eq('id', confirmDeleteClient.id);
 
     if (error) {
        // Se o erro for de Foreign Key constraint (código 23503 do Postgres, mas o supabase pode retornar string genérica no message)
@@ -172,6 +177,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
     } else {
       carregarClientes();
     }
+    setConfirmDeleteClient({ open: false, id: null, nome: '' });
   };
 
   const clientesFiltrados = clientes.filter(c =>
@@ -339,6 +345,34 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
               Salvar Alterações
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmação - Excluir Cliente */}
+      {confirmDeleteClient.open && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[120]">
+          <Card className="w-full max-w-sm p-8 space-y-6 rounded-[32px] shadow-2xl border-none text-left">
+            <div className="space-y-3">
+              <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Excluir cliente</h3>
+              <p className="text-sm text-slate-600">
+                Você tem certeza que deseja excluir <span className="font-semibold text-slate-900">{confirmDeleteClient.nome}</span>?
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteClient({ open: false, id: null, nome: '' })}
+                className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-4 bg-[#BC2A1A] text-white rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
+              >
+                Excluir
+              </button>
+            </div>
+          </Card>
         </div>
       )}
     </div>

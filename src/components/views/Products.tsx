@@ -29,6 +29,7 @@ export const ProductsView = ({
 }: ProductsViewProps) => {
   const [formData, setFormData] = useState<any>({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmRemovePhoto, setConfirmRemovePhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
 
@@ -230,11 +231,11 @@ export const ProductsView = ({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setFormData({ ...formData, image: '' });
+                        setConfirmRemovePhoto(true);
                       }}
-                      className="absolute -top-4 -right-4 w-7 h-7 bg-[#BC2A1A] hover:bg-[#d63426] text-white rounded-full flex items-center justify-center shadow-xl transition-all z-10"
+                      className="absolute top-1 right-1 w-7 h-7 bg-black/60 hover:bg-[#BC2A1A] text-white rounded-full flex items-center justify-center shadow-lg transition-all backdrop-blur-sm z-20"
                     >
-                      <X size={16} strokeWidth={3} />
+                      <Trash2 size={14} strokeWidth={2.5} />
                     </button>
                   </>
                 ) : (
@@ -299,6 +300,35 @@ export const ProductsView = ({
           </button>
         </div>
       </div>
+
+      {/* Modal de Confirmação - Remover Foto */}
+      {confirmRemovePhoto && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[120]">
+          <Card className="w-full max-w-sm p-8 space-y-6 rounded-[32px] shadow-2xl border-none text-left">
+            <div className="space-y-3">
+              <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Remover foto</h3>
+              <p className="text-sm text-slate-600">Você tem certeza que deseja remover esta foto?</p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmRemovePhoto(false)}
+                className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setFormData({ ...formData, image: '' });
+                  setConfirmRemovePhoto(false);
+                }}
+                className="flex-1 py-4 bg-[#BC2A1A] text-white rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
+              >
+                Remover
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

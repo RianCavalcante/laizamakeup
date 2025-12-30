@@ -55,6 +55,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   const [sales, setSales] = useState<any[]>([]);
   const [sellers, setSellers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [confirmDeleteSale, setConfirmDeleteSale] = useState<{ open: boolean; saleId: string | null }>({ open: false, saleId: null });
 
   // Carregar dados iniciais do Supabase
   useEffect(() => {
@@ -243,15 +244,20 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   };
 
   const deleteSale = async (saleId: string) => {
-    if(!confirm('Tem certeza que deseja excluir esta venda? O estoque será reposto.')) return;
+    setConfirmDeleteSale({ open: true, saleId });
+  };
 
-    const { error } = await supabase.from('vendas').delete().eq('id', saleId);
+  const confirmDeleteSale_execute = async () => {
+    if (!confirmDeleteSale.saleId) return;
+
+    const { error } = await supabase.from('vendas').delete().eq('id', confirmDeleteSale.saleId);
     if (!error) {
-       setSales(prev => prev.filter(s => s.id !== saleId));
+       setSales(prev => prev.filter(s => s.id !== confirmDeleteSale.saleId));
     } else {
        console.error('Erro ao excluir venda:', error);
        alert('Não foi possível excluir a venda.');
     }
+    setConfirmDeleteSale({ open: false, saleId: null });
   };
 
   const addReplenishment = async (productId: string, quantity: number | string, unitPrice: number | string, date: string) => {
@@ -563,6 +569,34 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
                   }
                   setConfirmDelete({ open: false, productId: null });
                 }}
+                className="flex-1 py-4 bg-[#BC2A1A] text-white rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
+              >
+                Excluir
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal de Confirmação - Excluir Venda */}
+      {confirmDeleteSale.open && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[120]">
+          <Card className="w-full max-w-sm p-8 space-y-6 rounded-[32px] shadow-2xl border-none text-left">
+            <div className="space-y-3">
+              <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Excluir venda</h3>
+              <p className="text-sm text-slate-600">
+                Você tem certeza que deseja excluir esta venda? <span className="font-semibold text-[#BC2A1A]">O estoque será reposto.</span>
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDeleteSale({ open: false, saleId: null })}
+                className="flex-1 py-4 bg-slate-100 text-slate-700 rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteSale_execute}
                 className="flex-1 py-4 bg-[#BC2A1A] text-white rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
               >
                 Excluir
