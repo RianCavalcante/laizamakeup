@@ -290,13 +290,61 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
     }
   };
 
-  const addSale = async (productId: string, quantity: number | string, totalValue: number | string, sellerIds: string[]) => {
+  const addSale = async (
+    productId: string, 
+    quantity: number | string, 
+    totalValue: number | string, 
+    sellerIds: string[],
+    customerName: string,
+    customerPhone: string
+  ) => {
     setActionError(null);
+    
+    let clienteId = null;
+
+    // Se tem nome de cliente, buscar/criar cliente
+    if (customerName && customerName.trim()) {
+      // Buscar cliente existente pelo nome
+      const { data: existingClient } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('nome', customerName.trim())
+        .maybeSingle();
+
+      if (existingClient) {
+        // Cliente já existe
+        clienteId = existingClient.id;
+        
+        // Atualizar telefone se fornecido
+        if (customerPhone && customerPhone.trim()) {
+          await supabase
+            .from('clientes')
+            .update({ telefone: customerPhone.trim() })
+            .eq('id', clienteId);
+        }
+      } else {
+        // Criar novo cliente
+        const { data: newClient, error: clientError } = await supabase
+          .from('clientes')
+          .insert({
+            nome: customerName.trim(),
+            telefone: customerPhone?.trim() || null
+          })
+          .select('id')
+          .single();
+
+        if (newClient && !clientError) {
+          clienteId = newClient.id;
+        }
+      }
+    }
+
     const newSale = {
       produto_id: productId,
       quantidade: Number(quantity),
       valor_total: Number(totalValue),
       vendedor_ids: sellerIds,
+      cliente_id: clienteId,
       data: new Date().toISOString()
     };
 
@@ -309,7 +357,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             totalValue: created.valor_total ?? created.total_value,
             sellerIds: created.vendedor_ids ?? created.seller_ids,
             quantity: created.quantidade ?? created.quantity,
-            date: created.data ?? created.date
+            date: created.data ?? created.date,
+            clienteId: created.cliente_id
         };
         setSales([...sales, formatted]);
     } else if (error) {

@@ -11,7 +11,7 @@ interface SalesViewProps {
     products: any[];
     sellers: any[];
     setActiveTab: (tab: string) => void;
-    addSale: (productId: string, quantity: number | string, totalValue: number | string, sellerIds: string[]) => void;
+    addSale: (productId: string, quantity: number | string, totalValue: number | string, sellerIds: string[], customerName: string, customerPhone: string) => void;
     deleteSale: (saleId: string) => void;
     formatCurrency: (val: number) => string;
     formatDate: (date: string) => string;
@@ -97,12 +97,15 @@ export const SalesView = ({
     const [qty, setQty] = useState<number>(1);
     const [total, setTotal] = useState<string | number>('');
     const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
+    const [customerName, setCustomerName] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
 
     const handleSave = (e: any) => {
         e.preventDefault();
         if(!selectedProd || !qty || !total || selectedSellers.length === 0) return;
-        addSale(selectedProd, qty, total, selectedSellers);
+        addSale(selectedProd, qty, total, selectedSellers, customerName, customerPhone);
         setSelectedProd(''); setQty(1); setTotal(''); setSelectedSellers([]);
+        setCustomerName(''); setCustomerPhone('');
     };
 
     return (
@@ -140,6 +143,22 @@ export const SalesView = ({
                             setTotal(Number(rawValue) / 100);
                         }
                     }} 
+                />
+            </div>
+
+            {/* Dados do Cliente */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField 
+                    label="Nome do Cliente (Opcional)" 
+                    value={customerName} 
+                    onChange={(e: any) => setCustomerName(e.target.value)}
+                    placeholder="Ex: Maria Silva"
+                />
+                <InputField 
+                    label="Telefone (Opcional)" 
+                    value={customerPhone} 
+                    onChange={(e: any) => setCustomerPhone(e.target.value)}
+                    placeholder="Ex: (11) 98765-4321"
                 />
             </div>
 

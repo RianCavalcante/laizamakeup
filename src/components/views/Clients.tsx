@@ -14,7 +14,6 @@ type Cliente = {
   id: string;
   nome: string;
   telefone?: string;
-  email?: string;
   created_at: string;
 };
 
@@ -39,9 +38,9 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editModal, setEditModal] = useState<{ open: boolean; cliente: Cliente | null }>({ open: false, cliente: null });
-  const [editForm, setEditForm] = useState({ telefone: '', email: '' });
+  const [editForm, setEditForm] = useState({ telefone: '' });
   const [addModal, setAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({ nome: '', telefone: '', email: '' });
+  const [addForm, setAddForm] = useState({ nome: '', telefone: '' });
 
   useEffect(() => {
     carregarClientes();
@@ -101,8 +100,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
   const openEditModal = (cliente: Cliente) => {
     setEditModal({ open: true, cliente });
     setEditForm({ 
-      telefone: cliente.telefone || '', 
-      email: cliente.email || '' 
+      telefone: cliente.telefone || ''
     });
   };
 
@@ -112,8 +110,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
     const { error } = await supabase
       .from('clientes')
       .update({
-        telefone: editForm.telefone || null,
-        email: editForm.email || null
+        telefone: editForm.telefone || null
       })
       .eq('id', editModal.cliente.id);
 
@@ -133,13 +130,12 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
       .from('clientes')
       .insert({
         nome: addForm.nome.trim(),
-        telefone: addForm.telefone || null,
-        email: addForm.email || null
+        telefone: addForm.telefone || null
       });
 
     if (!error) {
       setAddModal(false);
-      setAddForm({ nome: '', telefone: '', email: '' });
+      setAddForm({ nome: '', telefone: '' });
       carregarClientes();
     } else {
       alert('Erro ao adicionar cliente. Verifique se o nome já existe.');
@@ -227,14 +223,9 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <h3 className="text-lg font-black text-slate-900 uppercase">{cliente.nome}</h3>
-                  {(cliente.telefone || cliente.email) && (
+                  {cliente.telefone && (
                     <div className="flex flex-col gap-1 mt-2">
-                      {cliente.telefone && (
-                        <p className="text-xs text-slate-600">📱 {cliente.telefone}</p>
-                      )}
-                      {cliente.email && (
-                        <p className="text-xs text-slate-600">✉️ {cliente.email}</p>
-                      )}
+                      <p className="text-xs text-slate-600">📱 {cliente.telefone}</p>
                     </div>
                   )}
                 </div>
@@ -279,16 +270,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
                 label="Telefone" 
                 type="tel" 
                 value={addForm.telefone} 
-                onChange={(e: any) => setAddForm({ ...addForm, telefone: e.target.value })} 
                 placeholder="(00) 00000-0000"
-              />
-              
-              <InputField 
-                label="Email" 
-                type="email" 
-                value={addForm.email} 
-                onChange={(e: any) => setAddForm({ ...addForm, email: e.target.value })} 
-                placeholder="cliente@email.com"
               />
             </div>
 
@@ -324,14 +306,6 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
                 value={editForm.telefone} 
                 onChange={(e: any) => setEditForm({ ...editForm, telefone: e.target.value })} 
                 placeholder="(00) 00000-0000"
-              />
-              
-              <InputField 
-                label="Email" 
-                type="email" 
-                value={editForm.email} 
-                onChange={(e: any) => setEditForm({ ...editForm, email: e.target.value })} 
-                placeholder="cliente@email.com"
               />
             </div>
 
