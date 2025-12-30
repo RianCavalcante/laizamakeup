@@ -220,11 +220,25 @@ export const ProductsView = ({
           </div>
           
           <div className="flex flex-col items-center gap-2 py-2">
-             <div className="w-16 h-16 rounded-[20px] bg-[#FFDCD8]/30 border-2 border-dashed border-[#FFDCD8] overflow-hidden flex items-center justify-center relative active:scale-95 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                {formData.image ? <img src={formData.image} className="w-full h-full object-cover" alt="" /> : <Camera size={18} className="text-[#BC2A1A]/40" />}
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" capture="environment" className="hidden" />
+             <div 
+               className="w-20 h-20 rounded-[20px] bg-[#FFDCD8]/30 border-2 border-dashed border-[#BC2A1A] overflow-hidden flex items-center justify-center relative active:scale-95 transition-all cursor-pointer hover:bg-[#FFDCD8]/50" 
+               onClick={() => fileInputRef.current?.click()}
+             >
+                {formData.image ? (
+                  <img src={formData.image} className="w-full h-full object-cover" alt="Produto" />
+                ) : (
+                  <Camera size={24} className="text-[#BC2A1A]" />
+                )}
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  accept="image/*" 
+                  capture
+                  className="hidden" 
+                />
              </div>
-             <p className="text-[10px] font-black text-[#BC2A1A] uppercase tracking-widest">Carregar Foto</p>
+             <p className="text-[10px] font-black text-[#BC2A1A] uppercase tracking-widest">📸 Tirar Foto</p>
           </div>
 
           <div className="space-y-4">
