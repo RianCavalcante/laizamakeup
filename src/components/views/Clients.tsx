@@ -37,7 +37,7 @@ type ClienteComVendas = Cliente & {
 
 export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsViewProps) => {
   const [clientes, setClientes] = useState<ClienteComVendas[]>([]);
-  // const [vendedores, setVendedores] = useState<any[]>([]); // Removido: usa prop sellers
+  const [localSellers, setLocalSellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editModal, setEditModal] = useState<{ open: boolean; cliente: Cliente | null }>({ open: false, cliente: null });
@@ -47,7 +47,14 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
 
   useEffect(() => {
     carregarClientes();
+    carregarVendedores();
   }, []);
+
+  const carregarVendedores = async () => {
+    const { data } = await supabase.from('vendedores').select('*');
+    if (data) setLocalSellers(data);
+  };
+
 
   const carregarClientes = async () => {
     setLoading(true); // Re-habilitado loading global
@@ -243,7 +250,14 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
           </Card>
         ) : (
           clientesFiltrados.map((cliente) => (
-            <ClientCard key={cliente.id} cliente={cliente} openEditModal={openEditModal} formatCurrency={formatCurrency} deleteClient={handleDeleteClient} vendedores={sellers} />
+            <ClientCard 
+                key={cliente.id} 
+                cliente={cliente} 
+                openEditModal={openEditModal} 
+                formatCurrency={formatCurrency} 
+                deleteClient={handleDeleteClient} 
+                vendedores={sellers && sellers.length > 0 ? sellers : localSellers} 
+            />
           ))
         )}
       </div>
@@ -392,10 +406,7 @@ const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient, vend
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                                     <p className="text-[9px] font-black text-[#BC2A1A] uppercase tracking-wider">
-                                                        {venda.vendedor_ids.map(id => {
-                                                            const s = vendedores.find(v => v.id === id);
-                                                            return s ? s.name : `(ID: ${id?.substring(0,8)})`;
-                                                        }).join(', ')}
+                                                        {venda.vendedor_ids.map(id => vendedores.find(v => v.id === id)?.name || 'Vendedor').join(', ')}
                                                     </p>
                                                 </>
                                             )}
