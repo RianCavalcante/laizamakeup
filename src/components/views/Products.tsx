@@ -232,7 +232,7 @@ export const ProductsView = ({
                         e.stopPropagation();
                         setFormData({ ...formData, image: '' });
                       }}
-                      className="absolute -top-2 -right-2 w-6 h-6 bg-[#BC2A1A] hover:bg-[#d63426] text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-10"
+                      className="absolute -top-3 -right-3 w-6 h-6 bg-[#BC2A1A] hover:bg-[#d63426] text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-10"
                     >
                       <X size={14} strokeWidth={3} />
                     </button>
