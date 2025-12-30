@@ -392,7 +392,10 @@ const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient, vend
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                                     <p className="text-[9px] font-black text-[#BC2A1A] uppercase tracking-wider">
-                                                        {venda.vendedor_ids.map(id => vendedores.find(v => v.id === id)?.name || 'Vendedor').join(', ')}
+                                                        {venda.vendedor_ids.map(id => {
+                                                            const s = vendedores.find(v => v.id === id);
+                                                            return s ? s.name : `(ID: ${id?.substring(0,8)})`;
+                                                        }).join(', ')}
                                                     </p>
                                                 </>
                                             )}
