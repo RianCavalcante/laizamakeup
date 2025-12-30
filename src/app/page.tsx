@@ -98,7 +98,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
           withRetry(async () =>
-            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id, clientes(nome)')
+            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes, clientes(nome)')
           ),
           withRetry(async () => await supabase.from('vendedores').select('id,nome')),
           withRetry(async () => await supabase.from('clientes').select('*'))
@@ -146,7 +146,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             sellerIds: s.vendedor_ids ?? s.seller_ids,
             quantity: s.quantidade ?? s.quantity,
             date: s.data ?? s.date,
-            clienteNome: s.clientes?.nome // Mapeia o nome do cliente vindo da relação
+            clienteNome: s.cliente_nome ?? s.clientes?.nome, // Prioriza nome salvo no snapshot
+            vendedoresNomes: s.vendedores_nomes // Novo campo snapshot
           })));
         }
 
@@ -348,12 +349,21 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       }
     }
 
+    // Snapshot dos nomes dos vendedores
+    const sellerNamesSnapshot = sellerIds.map(id => {
+        const s = sellers.find(sel => sel.id === id);
+        return s ? s.name : '';
+    }).filter(Boolean).join(', ');
+
     const newSale = {
       produto_id: productId,
       quantidade: Number(quantity),
       valor_total: Number(totalValue),
       vendedor_ids: sellerIds,
       cliente_id: clienteId,
+      cliente_nome: customerName, // Snapshot
+      cliente_telefone: customerPhone, // Snapshot
+      vendedores_nomes: sellerNamesSnapshot, // Snapshot
       data: new Date().toISOString()
     };
 
@@ -368,7 +378,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             quantity: created.quantidade ?? created.quantity,
             date: created.data ?? created.date,
             clienteId: created.cliente_id,
-            clienteNome: customerName // Nome disponível no escopo da função addSale
+            clienteNome: created.cliente_nome ?? customerName,
+            vendedoresNomes: created.vendedores_nomes ?? sellerNamesSnapshot
         };
         setSales([...sales, formatted]);
     } else if (error) {

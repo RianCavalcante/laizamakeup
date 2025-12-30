@@ -27,6 +27,7 @@ type Venda = {
     nome: string;
   };
   vendedor_ids?: string[];
+  vendedores_nomes?: string;
 };
 
 type ClienteComVendas = Cliente & {
@@ -406,7 +407,10 @@ const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient, vend
                                                 <>
                                                     <span className="w-1 h-1 rounded-full bg-slate-300"></span>
                                                     <p className="text-[9px] font-black text-[#BC2A1A] uppercase tracking-wider">
-                                                        {venda.vendedor_ids.map(id => vendedores.find(v => v.id === id)?.name || 'Vendedor').join(', ')}
+                                                        {venda.vendedores_nomes || venda.vendedor_ids.map(id => {
+                                                          const vendedor = vendedores.find(v => v.id === id);
+                                                          return vendedor ? vendedor.name : `(ID: ${id?.slice(0,5)}...)`; 
+                                                        }).join(', ')}
                                                     </p>
                                                 </>
                                             )}

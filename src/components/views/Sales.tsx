@@ -20,7 +20,7 @@ interface SalesViewProps {
 const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDate }: any) => {
     const [expanded, setExpanded] = useState(false);
     const saleProfit = Number(sale.totalValue) - (Number(product?.purchasePrice || 0) * Number(sale.quantity));
-    const sellerNames = sale.sellerIds?.map((id: string) => sellers.find((sel: any) => sel.id === id)?.name).join(', ') || 'N/A';
+    const sellerNames = sale.vendedoresNomes || sale.sellerIds?.map((id: string) => sellers.find((sel: any) => sel.id === id)?.name).join(', ') || 'N/A';
 
     return (
         <Card noPadding className={`p-4 border-l-4 ${saleProfit >= 0 ? 'border-l-slate-400' : 'border-l-[#BC2A1A]'} relative group transition-all`}>
