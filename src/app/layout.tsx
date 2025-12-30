@@ -8,6 +8,19 @@ const outfit = Outfit({ subsets: ["latin"], weight: ["400", "700", "900"] });
 export const metadata: Metadata = {
   title: "Laiza Makeup | Gestão de Estoque",
   description: "Controle de estoque e vendas para maquiagem",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" }
+    ],
+    apple: { url: "/icon-192.png", sizes: "192x192", type: "image/png" }
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Laiza Makeup",
+    statusBarStyle: "black-translucent"
+  }
 };
 
 export default function RootLayout({
