@@ -25,6 +25,7 @@ type Venda = {
   produto: {
     nome: string;
   };
+  vendedor_ids?: string[];
 };
 
 type ClienteComVendas = Cliente & {
@@ -35,6 +36,7 @@ type ClienteComVendas = Cliente & {
 
 export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) => {
   const [clientes, setClientes] = useState<ClienteComVendas[]>([]);
+  const [vendedores, setVendedores] = useState<any[]>([]); // Novo estado para vendedores
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editModal, setEditModal] = useState<{ open: boolean; cliente: Cliente | null }>({ open: false, cliente: null });
@@ -43,11 +45,25 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
   const [addForm, setAddForm] = useState({ nome: '', telefone: '' });
 
   useEffect(() => {
-    carregarClientes();
+    carregarDados();
   }, []);
 
-  const carregarClientes = async () => {
+  const carregarDados = async () => {
     setLoading(true);
+    try {
+        // Buscar vendedores primeiro
+        const { data: sellersData } = await supabase.from('vendedores').select('*');
+        if(sellersData) setVendedores(sellersData);
+
+        await carregarClientes();
+    } catch (error) {
+        console.error("Erro ao carregar dados iniciais", error);
+        setLoading(false);
+    }
+  };
+
+  const carregarClientes = async () => {
+    // setLoading(true); // Removido pois carregado no carregarDados ou gerenciaremos estado global
     try {
       // Buscar clientes
       const { data: clientesData, error: clientesError } = await supabase
@@ -67,7 +83,8 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
               quantidade,
               valor_total,
               data,
-              produtos!inner(nome)
+              produtos!inner(nome),
+              vendedor_ids
             `)
             .eq('cliente_id', cliente.id)
             .order('data', { ascending: false });
@@ -239,7 +256,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
           </Card>
         ) : (
           clientesFiltrados.map((cliente) => (
-            <ClientCard key={cliente.id} cliente={cliente} openEditModal={openEditModal} formatCurrency={formatCurrency} deleteClient={handleDeleteClient} />
+            <ClientCard key={cliente.id} cliente={cliente} openEditModal={openEditModal} formatCurrency={formatCurrency} deleteClient={handleDeleteClient} vendedores={vendedores} />
           ))
         )}
       </div>
@@ -327,7 +344,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
 };
 
 // Componente do Card de Cliente extraído
-const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient }: { cliente: ClienteComVendas, openEditModal: any, formatCurrency: any, deleteClient: any }) => {
+const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient, vendedores }: { cliente: ClienteComVendas, openEditModal: any, formatCurrency: any, deleteClient: any, vendedores: any[] }) => {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -382,8 +399,18 @@ const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient }: { 
                             {cliente.vendas.map((venda) => (
                                 <div key={venda.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
                                     <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-[10px] text-slate-400 font-bold">{new Date(venda.data).toLocaleDateString('pt-BR')}</p>
+                                            {venda.vendedor_ids && venda.vendedor_ids.length > 0 && (
+                                                <>
+                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                                                    <p className="text-[9px] font-black text-[#BC2A1A] uppercase tracking-wider">
+                                                        {venda.vendedor_ids.map(id => vendedores.find(v => v.id === id)?.name || 'Vendedor').join(', ')}
+                                                    </p>
+                                                </>
+                                            )}
+                                        </div>
                                         <p className="text-xs font-bold text-slate-700 uppercase">{venda.produto?.nome || 'Produto desconhecido'}</p>
-                                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{new Date(venda.data).toLocaleDateString('pt-BR')}</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs font-black text-slate-900">{formatCurrency(venda.valor_total)}</p>
