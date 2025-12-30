@@ -225,7 +225,18 @@ export const ProductsView = ({
                onClick={() => fileInputRef.current?.click()}
              >
                 {formData.image ? (
-                  <img src={formData.image} className="w-full h-full object-cover" alt="Produto" />
+                  <>
+                    <img src={formData.image} className="w-full h-full object-cover" alt="Produto" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFormData({ ...formData, image: '' });
+                      }}
+                      className="absolute -top-1 -right-1 w-6 h-6 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors z-10"
+                    >
+                      <X size={14} strokeWidth={3} />
+                    </button>
+                  </>
                 ) : (
                   <Camera size={24} className="text-[#BC2A1A]" />
                 )}
