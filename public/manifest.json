@@ -1,0 +1,24 @@
+{
+  "name": "Laiza Makeup",
+  "short_name": "Laiza Makeup",
+  "description": "Gestão de Estoque e Vendas para Maquiagem",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFDCD8",
+  "theme_color": "#BC2A1A",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
