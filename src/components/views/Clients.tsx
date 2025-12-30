@@ -38,7 +38,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [editModal, setEditModal] = useState<{ open: boolean; cliente: Cliente | null }>({ open: false, cliente: null });
-  const [editForm, setEditForm] = useState({ telefone: '' });
+  const [editForm, setEditForm] = useState({ nome: '', telefone: '' });
   const [addModal, setAddModal] = useState(false);
   const [addForm, setAddForm] = useState({ nome: '', telefone: '' });
 
@@ -100,6 +100,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
   const openEditModal = (cliente: Cliente) => {
     setEditModal({ open: true, cliente });
     setEditForm({ 
+      nome: cliente.nome,
       telefone: cliente.telefone || ''
     });
   };
@@ -110,6 +111,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
     const { error } = await supabase
       .from('clientes')
       .update({
+        nome: editForm.nome,
         telefone: editForm.telefone || null
       })
       .eq('id', editModal.cliente.id);
@@ -293,9 +295,14 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
             </div>
             
             <div className="space-y-4">
-              <div className="p-4 bg-[#FFDCD8]/30 rounded-2xl">
-                <p className="text-sm font-black text-[#BC2A1A] uppercase tracking-wider">{editModal.cliente?.nome}</p>
-              </div>
+              {/* Removido o display apenas de texto e adicionado Input editável */}
+              <InputField 
+                label="Nome do Cliente" 
+                type="text" 
+                value={editForm.nome} 
+                onChange={(e: any) => setEditForm({ ...editForm, nome: e.target.value })} 
+                placeholder="Nome do cliente"
+              />
               
               <InputField 
                 label="Telefone" 
