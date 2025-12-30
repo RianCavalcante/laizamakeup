@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
-import { Users, ShoppingBag, TrendingUp, Pencil, X, ArrowLeft, Search } from 'lucide-react';
+import { Users, ShoppingBag, TrendingUp, Pencil, X, ArrowLeft, Search, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface ClientsViewProps {
@@ -142,6 +142,24 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
     }
   };
 
+  const handleDeleteClient = async (id: string, nome: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o cliente ${nome}?`)) return;
+
+    const { error } = await supabase.from('clientes').delete().eq('id', id);
+
+    if (error) {
+       // Se o erro for de Foreign Key constraint (código 23503 do Postgres, mas o supabase pode retornar string genérica no message)
+       if (error.code === '23503' || error.message.includes('foreign key constraint')) {
+           alert('Não é possível excluir este cliente pois ele possui vendas registradas. Exclua as vendas primeiro.');
+       } else {
+           alert('Erro ao excluir cliente.');
+           console.error(error);
+       }
+    } else {
+      carregarClientes();
+    }
+  };
+
   const clientesFiltrados = clientes.filter(c =>
     c.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -219,29 +237,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
           </Card>
         ) : (
           clientesFiltrados.map((cliente) => (
-            <Card key={cliente.id} className="p-6 rounded-[24px]">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-black text-slate-900 uppercase">{cliente.nome}</h3>
-                  {cliente.telefone && (
-                    <div className="flex flex-col gap-1 mt-2">
-                      <p className="text-xs text-slate-600">📱 {cliente.telefone}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => openEditModal(cliente)}
-                    className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-[#BC2A1A] hover:text-white flex items-center justify-center transition-colors"
-                  >
-                    <Pencil size={16} />
-                  </button>
-                  <div className="w-10 h-10 rounded-2xl bg-[#BC2A1A]/10 text-[#BC2A1A] flex items-center justify-center">
-                    <ShoppingBag size={20} />
-                  </div>
-                </div>
-              </div>
-            </Card>
+            <ClientCard key={cliente.id} cliente={cliente} openEditModal={openEditModal} formatCurrency={formatCurrency} deleteClient={handleDeleteClient} />
           ))
         )}
       </div>
@@ -251,7 +247,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4 z-[110]">
           <div className="w-full max-w-md p-8 space-y-6 rounded-t-[40px] sm:rounded-[40px] bg-white shadow-2xl text-left">
             <div className="flex items-center gap-4">
-              <button onClick={() => setAddModal(false)} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
+              <button onClick={() => setAddModal(false)} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors border-none">
                 <ArrowLeft size={20} />
               </button>
               <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Novo Cliente</h3>
@@ -270,6 +266,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
                 label="Telefone" 
                 type="tel" 
                 value={addForm.telefone} 
+                onChange={(e: any) => setAddForm({ ...addForm, telefone: e.target.value })} 
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -289,7 +286,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4 z-[110]">
           <div className="w-full max-w-md p-8 space-y-6 rounded-t-[40px] sm:rounded-[40px] bg-white shadow-2xl text-left">
             <div className="flex items-center gap-4">
-              <button onClick={() => setEditModal({ open: false, cliente: null })} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors">
+              <button onClick={() => setEditModal({ open: false, cliente: null })} className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center transition-colors border-none">
                 <ArrowLeft size={20} />
               </button>
               <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Editar Cliente</h3>
@@ -320,4 +317,79 @@ export const ClientsView = ({ setActiveTab, formatCurrency }: ClientsViewProps) 
       )}
     </div>
   );
+};
+
+// Componente do Card de Cliente extraído
+const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient }: { cliente: ClienteComVendas, openEditModal: any, formatCurrency: any, deleteClient: any }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <Card className="p-6 rounded-[24px]">
+            <div className="flex items-start justify-between">
+            <div className="flex-1">
+                <h3 className="text-lg font-black text-slate-900 uppercase">{cliente.nome}</h3>
+                {cliente.telefone && (
+                <div className="flex flex-col gap-1 mt-2">
+                    <p className="text-xs text-slate-600">📱 {cliente.telefone}</p>
+                </div>
+                )}
+                <div className="mt-2 flex gap-3">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md">
+                        {cliente.total_compras} compras
+                    </span>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-md">
+                        Total: {formatCurrency(cliente.total_gasto)}
+                    </span>
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <button 
+                onClick={() => openEditModal(cliente)}
+                className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-[#BC2A1A] hover:text-white flex items-center justify-center transition-colors border-none"
+                title="Editar Cliente"
+                >
+                <Pencil size={16} />
+                </button>
+                <button 
+                onClick={() => deleteClient(cliente.id, cliente.nome)}
+                className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-red-500 flex items-center justify-center transition-colors border-none"
+                title="Excluir Cliente"
+                >
+                <Trash2 size={16} />
+                </button>
+                <button 
+                onClick={() => setExpanded(!expanded)}
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all border-none ${expanded ? 'bg-[#BC2A1A] text-white shadow-lg shadow-[#BC2A1A]/30 scale-105' : 'bg-[#BC2A1A]/10 text-[#BC2A1A] hover:bg-[#BC2A1A]/20'}`}
+                title={expanded ? "Ocultar Histórico" : "Ver Histórico de Compras"}
+                >
+                <ShoppingBag size={20} />
+                </button>
+            </div>
+            </div>
+
+            {expanded && (
+                <div className="mt-6 pt-6 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest Mb-3">Histórico de Compras</h4>
+                    {cliente.vendas && cliente.vendas.length > 0 ? (
+                        <div className="space-y-3 mt-3">
+                            {cliente.vendas.map((venda) => (
+                                <div key={venda.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-700 uppercase">{venda.produto?.nome || 'Produto desconhecido'}</p>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">{new Date(venda.data).toLocaleDateString('pt-BR')}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-black text-slate-900">{formatCurrency(venda.valor_total)}</p>
+                                        <p className="text-[10px] text-slate-500 font-bold">x{venda.quantidade}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center py-4 text-xs text-slate-400 font-medium">Nenhuma compra registrada</p>
+                    )}
+                </div>
+            )}
+        </Card>
+    );
 };

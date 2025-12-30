@@ -54,6 +54,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   const [replenishments, setReplenishments] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [sellers, setSellers] = useState<any[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
 
   // Carregar dados iniciais do Supabase
   useEffect(() => {
@@ -87,7 +88,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           { data: prodData, error: prodError },
           { data: repData, error: repError },
           { data: salesData, error: salesError },
-          { data: sellersData, error: sellersError }
+          { data: sellersData, error: sellersError },
+          { data: clientsData, error: clientsError }
         ] = await Promise.all([
           withRetry(async () =>
             await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
@@ -96,9 +98,10 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
           withRetry(async () =>
-            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data')
+            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id')
           ),
-          withRetry(async () => await supabase.from('vendedores').select('id,nome'))
+          withRetry(async () => await supabase.from('vendedores').select('id,nome')),
+          withRetry(async () => await supabase.from('clientes').select('*'))
         ]) as any;
 
         const elapsed = Date.now() - startedAt;
@@ -109,8 +112,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
         if (cancelled) return;
 
-        if (prodError || repError || salesError || sellersError) {
-          throw prodError || repError || salesError || sellersError;
+        if (prodError || repError || salesError || sellersError || clientsError) {
+          throw prodError || repError || salesError || sellersError || clientsError;
         }
 
         if (prodData) {
@@ -151,6 +154,10 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             ...s,
             name: s.nome ?? s.name
           })));
+        }
+
+        if (clientsData) {
+          setClients(clientsData);
         }
         
         setIsLoaded(true);
@@ -330,11 +337,12 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             nome: customerName.trim(),
             telefone: customerPhone?.trim() || null
           })
-          .select('id')
+          .select('*')
           .single();
 
         if (newClient && !clientError) {
           clienteId = newClient.id;
+          setClients(prev => [...prev, newClient]);
         }
       }
     }
@@ -475,6 +483,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
                   sales={sales}
                   products={products}
                   sellers={sellers}
+                  clients={clients}
                   setActiveTab={setActiveTab}
                   addSale={addSale}
                   formatCurrency={formatCurrency}

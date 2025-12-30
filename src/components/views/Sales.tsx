@@ -3,7 +3,7 @@ import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
 import { SelectField } from '../ui/SelectField';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 
 interface SalesViewProps {
     inventory: any[];
@@ -82,23 +82,111 @@ const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDa
     );
 };
 
+const ClientSearch = ({ clients, value, onChange, onSelect }: any) => {
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    
+    // Se tem valor filtrado, usa o filtro. Se não tem valor, mostra todos os clientes.
+    // Ordenar clientes por nome para facilitar a busca visual
+    const sortedClients = [...clients].sort((a: any, b: any) => a.nome.localeCompare(b.nome));
+    
+    const filteredClients = value 
+        ? sortedClients.filter((c: any) => c.nome.toLowerCase().includes(value.toLowerCase()))
+        : sortedClients;
+
+    return (
+        <div className="relative">
+            <InputField 
+                label="Nome do Cliente (Opcional)" 
+                value={value} 
+                onChange={(e: any) => {
+                    onChange(e.target.value);
+                    setShowSuggestions(true);
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                placeholder="Ex: Maria Silva"
+                autoComplete="off"
+            />
+            {showSuggestions && (
+                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
+                    {/* Opção Fixa de Cadastro */}
+                    <button
+                        type="button"
+                        onMouseDown={(e) => {
+                            e.preventDefault(); // Evita perder o foco do input
+                            onChange(''); // Limpa o campo para digitar um novo nome
+                            setShowSuggestions(false); // Fecha a lista momentaneamente ou mantém aberta? Melhor fechar para indicar ação.
+                            // Na verdade, o usuário quer "Cadastrar". Como o cadastro é apenas digitar um nome novo...
+                            // Vamos focar no input.
+                            setTimeout(() => {
+                                const input = document.querySelector('input[placeholder="Ex: Maria Silva"]') as HTMLInputElement;
+                                if(input) input.focus();
+                            }, 50);
+                        }}
+                        className="sticky top-0 z-10 w-full text-left px-4 py-3 bg-[#BC2A1A]/5 hover:bg-[#BC2A1A]/10 border-b border-[#BC2A1A]/10 text-[#BC2A1A] font-black text-xs uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm"
+                    >
+                        <div className="w-5 h-5 rounded-full bg-[#BC2A1A] flex items-center justify-center shadow-sm">
+                            <Plus size={12} className="text-white" strokeWidth={4} />
+                        </div>
+                        Cadastrar Novo Cliente
+                    </button>
+
+                    {/* Lista de Clientes */}
+                    {filteredClients.length > 0 ? (
+                        filteredClients.map((client: any) => (
+                            <button
+                                key={client.id}
+                                type="button"
+                                onClick={() => {
+                                    onSelect(client);
+                                    setShowSuggestions(false);
+                                }}
+                                className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-none flex justify-between items-center group transition-colors"
+                            >
+                                <span className="font-bold text-slate-700 text-sm group-hover:text-[#BC2A1A] transition-colors">{client.nome}</span>
+                                {client.telefone && <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">{client.telefone}</span>}
+                            </button>
+                        ))
+                    ) : (
+                        <div className="p-4 text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                "{value}" será cadastrado como novo
+                            </p>
+                        </div>
+                    )}
+                </div>
+            )}
+            {showSuggestions && (
+                <div className="fixed inset-0 z-40" onClick={() => setShowSuggestions(false)} />
+            )}
+        </div>
+    );
+};
+
 export const SalesView = ({ 
     inventory, 
     sales, 
     products, 
     sellers, 
+    clients = [],
     setActiveTab, 
     addSale, 
     deleteSale,
     formatCurrency, 
     formatDate 
-}: SalesViewProps) => {
+}: any) => {
     const [selectedProd, setSelectedProd] = useState('');
     const [qty, setQty] = useState<number>(1);
     const [total, setTotal] = useState<string | number>('');
     const [selectedSellers, setSelectedSellers] = useState<string[]>([]);
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
+
+    const handleClientSelect = (client: any) => {
+        setCustomerName(client.nome);
+        if (client.telefone) {
+            setCustomerPhone(client.telefone);
+        }
+    };
 
     const handleSave = (e: any) => {
         e.preventDefault();
@@ -119,17 +207,21 @@ export const SalesView = ({
             <form onSubmit={handleSave} className="space-y-6">
             <SelectField label="Artigo" value={selectedProd} onChange={(e: any) => {
                 setSelectedProd(e.target.value);
-                const prod = products.find(p => p.id === e.target.value);
+                const prod = products.find((p: any) => p.id === e.target.value);
                 if(prod) setTotal(prod.basePrice * qty);
-                }}>
+            }}>
                 <option value="">Escolher produto...</option>
-                {inventory.filter(p => p.currentStock > 0).map(p => <option key={p.id} value={p.id}>{p.name} ({p.currentStock} un.)</option>)}
+                {inventory.filter((p: any) => p.currentStock > 0).map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                        {p.name} ({p.currentStock} un.)
+                    </option>
+                ))}
             </SelectField>
             
             <div className="grid grid-cols-2 gap-4">
                 <InputField label="Qtd." type="number" value={qty} min="1" onChange={(e: any) => {
                     setQty(Number(e.target.value));
-                    const prod = products.find(p => p.id === selectedProd);
+                    const prod = products.find((p: any) => p.id === selectedProd);
                     if(prod) setTotal(prod.basePrice * Number(e.target.value));
                 }} />
                 <InputField 
@@ -146,13 +238,13 @@ export const SalesView = ({
                 />
             </div>
 
-            {/* Dados do Cliente */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InputField 
-                    label="Nome do Cliente (Opcional)" 
+            {/* Dados do Cliente - Busca Inteligente */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-20">
+                <ClientSearch 
+                    clients={clients} 
                     value={customerName} 
-                    onChange={(e: any) => setCustomerName(e.target.value)}
-                    placeholder="Ex: Maria Silva"
+                    onChange={setCustomerName} 
+                    onSelect={handleClientSelect} 
                 />
                 <InputField 
                     label="Telefone (Opcional)" 
@@ -162,10 +254,10 @@ export const SalesView = ({
                 />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 pt-2">
                 <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Vendedor</label>
                 <div className="grid grid-cols-2 gap-3">
-                {sellers.map(s => (
+                {sellers.map((s: any) => (
                     <label key={s.id} className={`flex items-center justify-center p-4 rounded-[20px] border-2 transition-all cursor-pointer ${selectedSellers.includes(s.id) ? 'border-[#BC2A1A] bg-[#BC2A1A]/5 text-[#BC2A1A]' : 'border-slate-100 bg-slate-50 text-slate-400'}`}>
                     <input type="checkbox" checked={selectedSellers.includes(s.id)}
                         onChange={() => {
@@ -185,7 +277,7 @@ export const SalesView = ({
         <div className="space-y-4 text-left">
             <h3 className="font-black text-[11px] text-slate-400 uppercase tracking-[0.2em] ml-2">Histórico Recente</h3>
             {sales.length > 0 ? [...sales].reverse().slice(0, 20).map(s => {
-                const product = products.find(p => p.id === s.productId);
+                const product = products.find((p: any) => p.id === s.productId);
                 return (
                     <SaleCard 
                         key={s.id} 
