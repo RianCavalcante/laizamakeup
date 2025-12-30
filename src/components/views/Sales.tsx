@@ -187,8 +187,6 @@ export const SalesView = ({
     const [customerName, setCustomerName] = useState('');
     const [customerPhone, setCustomerPhone] = useState('');
     
-    console.log('SalesView clients prop:', clients?.length, clients);
-
     const handleClientSelect = (client: any) => {
         setCustomerName(client.nome);
         if (client.telefone) {
@@ -247,7 +245,7 @@ export const SalesView = ({
             </div>
 
             {/* Dados do Cliente - Busca Inteligente */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-20">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-[60]">
                 <ClientSearch 
                     clients={clients} 
                     value={customerName} 
