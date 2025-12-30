@@ -3,7 +3,8 @@ import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
 import { SelectField } from '../ui/SelectField';
-import { Trash2, Plus } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Search, X } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface SalesViewProps {
     inventory: any[];
@@ -90,79 +91,150 @@ const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDa
 
 const ClientSearch = ({ clients, value, onChange, onSelect }: any) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
     
-    // Se tem valor filtrado, usa o filtro. Se não tem valor, mostra todos os clientes.
-    // Ordenar clientes por nome para facilitar a busca visual
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     const sortedClients = [...clients].sort((a: any, b: any) => a.nome.localeCompare(b.nome));
     
     const filteredClients = value 
         ? sortedClients.filter((c: any) => c.nome.toLowerCase().includes(value.toLowerCase()))
         : sortedClients;
 
+    const SearchList = ({ isMobileView = false }: { isMobileView?: boolean }) => (
+        <>
+            {/* Opção Fixa de Cadastro */}
+            <button
+                type="button"
+                onClick={() => {
+                    onChange(''); 
+                    setShowSuggestions(false);
+                    setTimeout(() => {
+                        const input = document.querySelector('input[placeholder="Ex: Maria Silva"]') as HTMLInputElement;
+                        if(input) input.focus();
+                    }, 100);
+                }}
+                className={`w-full text-left px-5 py-4 bg-[#BC2A1A]/5 hover:bg-[#BC2A1A]/10 border-b border-[#BC2A1A]/10 text-[#BC2A1A] font-black text-xs uppercase tracking-widest flex items-center gap-3 transition-colors ${isMobileView ? 'sticky top-0 z-20' : ''}`}
+            >
+                <div className="w-6 h-6 rounded-full bg-[#BC2A1A] flex items-center justify-center shadow-lg">
+                    <Plus size={14} className="text-white" strokeWidth={4} />
+                </div>
+                Cadastrar Novo Cliente
+            </button>
+
+            {/* Lista de Clientes */}
+            <div className="divide-y divide-slate-50">
+                {filteredClients.length > 0 ? (
+                    filteredClients.map((client: any) => (
+                        <button
+                            key={client.id}
+                            type="button"
+                            onClick={() => {
+                                onSelect(client);
+                                setShowSuggestions(false);
+                            }}
+                            className="w-full text-left px-5 py-5 hover:bg-slate-50 flex justify-between items-center group transition-colors"
+                        >
+                            <div className="flex flex-col">
+                                <span className="font-black text-slate-800 text-sm group-hover:text-[#BC2A1A] transition-colors uppercase tracking-tight">{client.nome}</span>
+                                {client.telefone && <span className="text-[10px] font-bold text-slate-400 mt-0.5">{client.telefone}</span>}
+                            </div>
+                            <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-[#BC2A1A]/10 text-slate-300 group-hover:text-[#BC2A1A] transition-all">
+                                <Plus size={16} />
+                            </div>
+                        </button>
+                    ))
+                ) : (
+                    <div className="p-10 text-center space-y-2">
+                        <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-200">
+                           <Search size={24} />
+                        </div>
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">
+                            "{value}" será cadastrado como novo
+                        </p>
+                    </div>
+                )}
+            </div>
+        </>
+    );
+
     return (
         <div className="relative">
-            <InputField 
-                label="Nome do Cliente (Opcional)" 
-                value={value} 
-                onChange={(e: any) => {
-                    onChange(e.target.value);
-                    setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Ex: Maria Silva"
-                autoComplete="off"
-            />
-            {showSuggestions && (
-                <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar">
-                    {/* Opção Fixa de Cadastro */}
-                    <button
-                        type="button"
-                        onMouseDown={(e) => {
-                            e.preventDefault(); // Evita perder o foco do input
-                            onChange(''); // Limpa o campo para digitar um novo nome
-                            setShowSuggestions(false); // Fecha a lista momentaneamente ou mantém aberta? Melhor fechar para indicar ação.
-                            // Na verdade, o usuário quer "Cadastrar". Como o cadastro é apenas digitar um nome novo...
-                            // Vamos focar no input.
-                            setTimeout(() => {
-                                const input = document.querySelector('input[placeholder="Ex: Maria Silva"]') as HTMLInputElement;
-                                if(input) input.focus();
-                            }, 50);
-                        }}
-                        className="sticky top-0 z-10 w-full text-left px-4 py-3 bg-[#BC2A1A]/5 hover:bg-[#BC2A1A]/10 border-b border-[#BC2A1A]/10 text-[#BC2A1A] font-black text-xs uppercase tracking-widest flex items-center gap-2 backdrop-blur-sm"
-                    >
-                        <div className="w-5 h-5 rounded-full bg-[#BC2A1A] flex items-center justify-center shadow-sm">
-                            <Plus size={12} className="text-white" strokeWidth={4} />
-                        </div>
-                        Cadastrar Novo Cliente
-                    </button>
+            <div className="relative group" onClick={() => isMobile && setShowSuggestions(true)}>
+                <InputField 
+                    label="Nome do Cliente (Opcional)" 
+                    value={value} 
+                    onChange={(e: any) => {
+                        onChange(e.target.value);
+                        setShowSuggestions(true);
+                    }}
+                    onFocus={() => !isMobile && setShowSuggestions(true)}
+                    placeholder="Ex: Maria Silva"
+                    autoComplete="off"
+                    readOnly={isMobile}
+                    className={`${isMobile ? 'cursor-pointer' : ''} w-full px-5 py-4 bg-[#FFDCD8]/10 border border-[#FFDCD8] rounded-[20px] focus:ring-4 focus:ring-[#BC2A1A]/10 focus:border-[#BC2A1A] outline-none transition-all text-sm placeholder:text-slate-300 shadow-sm`}
+                />
+                {isMobile && !value && (
+                    <div className="absolute right-4 bottom-4 text-[#BC2A1A]">
+                        <Search size={20} className="opacity-40" />
+                    </div>
+                )}
+            </div>
 
-                    {/* Lista de Clientes */}
-                    {filteredClients.length > 0 ? (
-                        filteredClients.map((client: any) => (
-                            <button
-                                key={client.id}
-                                type="button"
-                                onClick={() => {
-                                    onSelect(client);
-                                    setShowSuggestions(false);
-                                }}
-                                className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-50 last:border-none flex justify-between items-center group transition-colors"
-                            >
-                                <span className="font-bold text-slate-700 text-sm group-hover:text-[#BC2A1A] transition-colors">{client.nome}</span>
-                                {client.telefone && <span className="text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-1 rounded-md">{client.telefone}</span>}
-                            </button>
-                        ))
-                    ) : (
-                        <div className="p-4 text-center">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                                "{value}" será cadastrado como novo
-                            </p>
-                        </div>
-                    )}
-                </div>
+            {/* Dropdown Desktop */}
+            {!isMobile && showSuggestions && (
+                <>
+                    <div className="absolute z-[100] left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[24px] shadow-2xl max-h-[350px] overflow-y-auto custom-scrollbar overflow-x-hidden animate-in fade-in zoom-in-95 duration-200 origin-top">
+                        <SearchList />
+                    </div>
+                    <div className="fixed inset-0 z-[90]" onClick={() => setShowSuggestions(false)} />
+                </>
             )}
-            {showSuggestions && (
-                <div className="fixed inset-0 z-40" onClick={() => setShowSuggestions(false)} />
+
+            {/* Overlay Mobile */}
+            {isMobile && showSuggestions && (
+                <div className="fixed inset-0 z-[200] bg-white flex flex-col animate-in slide-in-from-bottom duration-300">
+                    <header className="px-4 pt-6 pb-4 border-b border-slate-100 space-y-4 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <button 
+                                onClick={() => setShowSuggestions(false)}
+                                className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center active:scale-90 transition-transform"
+                            >
+                                <ArrowLeft size={24} />
+                            </button>
+                            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Buscar Cliente</h2>
+                        </div>
+                        
+                        <div className="relative">
+                            <input 
+                                autoFocus
+                                type="text"
+                                value={value}
+                                onChange={(e) => onChange(e.target.value)}
+                                placeholder="Digite o nome do cliente..."
+                                className="w-full pl-12 pr-4 py-5 bg-slate-50 border-none rounded-[24px] font-bold text-slate-800 placeholder:text-slate-400 focus:ring-4 focus:ring-[#BC2A1A]/10 transition-all text-base"
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                            {value && (
+                                <button 
+                                    onClick={() => onChange('')}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center p-0 border-none"
+                                >
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                    </header>
+                    
+                    <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">
+                        <SearchList isMobileView={true} />
+                    </div>
+                </div>
             )}
         </div>
     );
