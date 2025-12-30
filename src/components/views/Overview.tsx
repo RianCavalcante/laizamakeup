@@ -97,7 +97,7 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
           <div className="flex flex-col h-full relative z-10">
             <div className="flex-1 flex flex-col justify-center">
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Faturamento</p>
-              <h2 className="text-2xl font-black text-slate-900 leading-none tracking-tight">{formatCurrency(totalRevenue)}</h2>
+              <h2 className="text-xl md:text-2xl font-black text-slate-900 leading-none tracking-tight truncate" title={formatCurrency(totalRevenue)}>{formatCurrency(totalRevenue)}</h2>
             </div>
             <div className="flex justify-end mt-2">
               <div className="w-8 h-8 bg-slate-100 text-slate-900 rounded-xl flex items-center justify-center">

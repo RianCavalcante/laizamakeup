@@ -34,14 +34,14 @@ const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDa
             </button>
 
             {/* Header: Date & Seller */}
-            <div className="flex items-center gap-2 mb-1">
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{formatDate(sale.date)}</span>
-                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider">{sellerNames}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider shrink-0">{formatDate(sale.date)}</span>
+                <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                <span className="text-[10px] font-black text-slate-600 uppercase tracking-wider truncate max-w-[120px]" title={sellerNames}>{sellerNames}</span>
                 {sale.clienteNome && (
                    <>
-                     <span className="w-1 h-1 rounded-full bg-slate-300" />
-                     <span className="text-[10px] font-bold text-[#BC2A1A] uppercase tracking-wider">{sale.clienteNome}</span>
+                     <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0" />
+                     <span className="text-[10px] font-bold text-[#BC2A1A] uppercase tracking-wider truncate max-w-[120px]" title={sale.clienteNome}>{sale.clienteNome}</span>
                    </>
                 )}
             </div>
@@ -86,6 +86,125 @@ const SaleCard = ({ sale, product, sellers, deleteSale, formatCurrency, formatDa
                 </div>
             )}
         </Card>
+    );
+};
+
+const ProductSearch = ({ inventory, value, onChange, onSelect, formatCurrency }: any) => {
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isMobile, setIsMobile] = useState(false);
+    
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    const selectedProduct = inventory.find((p: any) => p.id === value);
+    const availableProducts = inventory.filter((p: any) => p.currentStock > 0);
+    
+    const filteredProducts = searchTerm 
+        ? availableProducts.filter((p: any) => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        : availableProducts;
+
+    const SearchList = () => (
+        <div className="divide-y divide-slate-50">
+            {filteredProducts.length > 0 ? (
+                filteredProducts.map((product: any) => (
+                    <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => {
+                            onSelect(product.id, 1); // Passa ID e sugere 1 como default
+                            setSearchTerm('');
+                            setShowSuggestions(false);
+                        }}
+                        className="w-full text-left px-5 py-5 hover:bg-slate-50 flex justify-between items-center group transition-colors"
+                    >
+                        <div className="flex flex-col">
+                            <span className="font-black text-slate-800 text-sm group-hover:text-[#BC2A1A] transition-colors uppercase tracking-tight">{product.name}</span>
+                            <span className="text-[10px] font-bold text-slate-400 mt-0.5">Estoque: {product.currentStock} un.</span>
+                        </div>
+                        <div className="text-right">
+                            <span className="block font-black text-slate-900 text-xs">{formatCurrency(product.basePrice)}</span>
+                            <span className="text-[9px] font-bold text-[#BC2A1A] uppercase">Selecionar</span>
+                        </div>
+                    </button>
+                ))
+            ) : (
+                <div className="p-10 text-center text-slate-300 font-black uppercase text-[10px] tracking-widest">Nenhum produto encontrado</div>
+            )}
+        </div>
+    );
+
+    return (
+        <div className="relative">
+            <div className="relative group" onClick={() => isMobile && setShowSuggestions(true)}>
+                <div className="space-y-2 w-full text-left">
+                    <label className="text-[11px] font-black text-slate-500 ml-1 uppercase tracking-widest">Artigo</label>
+                    <div className={`w-full px-5 py-4 bg-[#FFDCD8]/10 border border-[#FFDCD8] rounded-[20px] transition-all text-sm shadow-sm flex items-center justify-between ${isMobile ? 'cursor-pointer' : ''}`}>
+                        <span className={selectedProduct ? 'text-slate-900 font-bold' : 'text-slate-300'}>
+                            {selectedProduct ? selectedProduct.name : 'Escolher produto...'}
+                        </span>
+                        <Search size={16} className="text-[#BC2A1A]/40" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Overlay Mobile */}
+            {isMobile && showSuggestions && (
+                <div className="fixed inset-0 z-[200] bg-white flex flex-col animate-in slide-in-from-bottom duration-300">
+                    <header className="px-4 pt-6 pb-4 border-b border-slate-100 space-y-4 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => setShowSuggestions(false)} className="w-10 h-10 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center">
+                                <ArrowLeft size={24} />
+                            </button>
+                            <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Escolher Artigo</h2>
+                        </div>
+                        <div className="relative">
+                            <input 
+                                autoFocus
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Procurar produto..."
+                                className="w-full pl-12 pr-4 py-5 bg-slate-50 border-none rounded-[24px] font-bold text-slate-800 placeholder:text-slate-400 text-base"
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+                            {searchTerm && (
+                                <button onClick={() => setSearchTerm('')} className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center p-0 border-none">
+                                    <X size={14} />
+                                </button>
+                            )}
+                        </div>
+                    </header>
+                    <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">
+                        <SearchList />
+                    </div>
+                </div>
+            )}
+
+            {/* Dropdown Desktop */}
+            {!isMobile && showSuggestions && (
+                <>
+                    <div className="absolute z-[100] left-0 right-0 mt-2 bg-white border border-slate-100 rounded-[24px] shadow-2xl max-h-[350px] overflow-y-auto custom-scrollbar overflow-x-hidden animate-in fade-in zoom-in-95 duration-200 origin-top">
+                        <div className="p-3 border-b border-slate-50">
+                            <input 
+                                autoFocus
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Filtrar..."
+                                className="w-full px-4 py-2 bg-slate-50 border-none rounded-xl text-sm"
+                            />
+                        </div>
+                        <SearchList />
+                    </div>
+                    <div className="fixed inset-0 z-[90]" onClick={() => setShowSuggestions(false)} />
+                </>
+            )}
+        </div>
     );
 };
 
@@ -282,18 +401,16 @@ export const SalesView = ({
 
         <Card className="p-8 border-t-8 border-t-[#BC2A1A] shadow-xl text-left">
             <form onSubmit={handleSave} className="space-y-6">
-            <SelectField label="Artigo" value={selectedProd} onChange={(e: any) => {
-                setSelectedProd(e.target.value);
-                const prod = products.find((p: any) => p.id === e.target.value);
-                if(prod) setTotal(prod.basePrice * qty);
-            }}>
-                <option value="">Escolher produto...</option>
-                {inventory.filter((p: any) => p.currentStock > 0).map((p: any) => (
-                    <option key={p.id} value={p.id}>
-                        {p.name} ({p.currentStock} un.)
-                    </option>
-                ))}
-            </SelectField>
+            <ProductSearch 
+                inventory={inventory}
+                value={selectedProd}
+                formatCurrency={formatCurrency}
+                onSelect={(id: string) => {
+                    setSelectedProd(id);
+                    const prod = inventory.find((p: any) => p.id === id);
+                    if(prod) setTotal(prod.basePrice * qty);
+                }}
+            />
             
             <div className="grid grid-cols-2 gap-4">
                 <InputField label="Qtd." type="number" value={qty} min="1" onChange={(e: any) => {
