@@ -164,17 +164,19 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
   const confirmDelete = async () => {
     if (!confirmDeleteClient.id) return;
 
+    console.log('Tentando excluir cliente:', confirmDeleteClient.id);
     const { error } = await supabase.from('clientes').delete().eq('id', confirmDeleteClient.id);
 
     if (error) {
-       // Se o erro for de Foreign Key constraint (código 23503 do Postgres, mas o supabase pode retornar string genérica no message)
-       if (error.code === '23503' || error.message.includes('foreign key constraint')) {
-           alert('Não é possível excluir este cliente pois ele possui vendas registradas. Exclua as vendas primeiro.');
+       console.error('Erro Supabase na exclusão:', error);
+       // Se o erro for de Foreign Key (vendas vinculadas)
+       if (error.code === '23503' || error.message?.toLowerCase().includes('foreign key') || error.message?.toLowerCase().includes('violates')) {
+           alert(`Não é possível excluir ${confirmDeleteClient.nome} porque existem vendas registradas para este cliente. Por favor, exclua as vendas deste cliente primeiro ou mantenha o registro histórico.`);
        } else {
-           alert('Erro ao excluir cliente.');
-           console.error(error);
+           alert(`Erro ao excluir cliente: ${error.message || 'Erro desconhecido'}`);
        }
     } else {
+      console.log('Cliente excluído com sucesso');
       carregarClientes();
     }
     setConfirmDeleteClient({ open: false, id: null, nome: '' });
