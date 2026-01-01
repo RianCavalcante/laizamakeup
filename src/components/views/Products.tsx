@@ -246,11 +246,10 @@ export const ProductsView = ({
                   ref={fileInputRef} 
                   onChange={handleFileChange} 
                   accept="image/*" 
-                  capture
                   className="hidden" 
                 />
              </div>
-             <p className="text-[10px] font-black text-[#BC2A1A] uppercase tracking-widest">📸 Tirar Foto</p>
+             <p className="text-[10px] font-black text-[#BC2A1A] uppercase tracking-widest">📸 Câmera ou Galeria</p>
           </div>
 
           <div className="space-y-4">
