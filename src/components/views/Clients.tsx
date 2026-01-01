@@ -112,7 +112,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
 
   const openEditModal = (cliente: Cliente) => {
     setEditModal({ open: true, cliente });
-    setEditForm({ 
+    setEditForm({
       nome: cliente.nome,
       telefone: cliente.telefone || ''
     });
@@ -120,7 +120,7 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
 
   const handleSaveEdit = async () => {
     if (!editModal.cliente) return;
-    
+
     const { error } = await supabase
       .from('clientes')
       .update({
@@ -164,22 +164,39 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
   const confirmDelete = async () => {
     if (!confirmDeleteClient.id) return;
 
-    console.log('Tentando excluir cliente:', confirmDeleteClient.id);
-    const { error } = await supabase.from('clientes').delete().eq('id', confirmDeleteClient.id);
+    setLoading(true);
+    try {
+      console.log('Tentando excluir cliente:', confirmDeleteClient.id);
 
-    if (error) {
-       console.error('Erro Supabase na exclusão:', error);
-       // Se o erro for de Foreign Key (vendas vinculadas)
-       if (error.code === '23503' || error.message?.toLowerCase().includes('foreign key') || error.message?.toLowerCase().includes('violates')) {
-           alert(`Não é possível excluir ${confirmDeleteClient.nome} porque existem vendas registradas para este cliente. Por favor, exclua as vendas deste cliente primeiro ou mantenha o registro histórico.`);
-       } else {
-           alert(`Erro ao excluir cliente: ${error.message || 'Erro desconhecido'}`);
-       }
-    } else {
-      console.log('Cliente excluído com sucesso');
-      carregarClientes();
+      // Usamos .select() para confirmar que a deleção realmente afetou uma linha
+      const { data, error } = await supabase
+        .from('clientes')
+        .delete()
+        .eq('id', confirmDeleteClient.id)
+        .select();
+
+      if (error) {
+        console.error('Erro Supabase na exclusão:', error);
+        if (error.code === '23503' || error.message?.toLowerCase().includes('foreign key') || error.message?.toLowerCase().includes('violates')) {
+          alert(`Não é possível excluir ${confirmDeleteClient.nome} porque existem vendas registradas para este cliente. Por favor, execute o script de reparo do banco (SQL) para habilitar exclusão em cascata.`);
+        } else {
+          alert(`Erro ao excluir cliente: ${error.message || 'Erro desconhecido'}`);
+        }
+      } else if (!data || data.length === 0) {
+        // Se deu sucesso mas não retornou dados deletados, é RLS bloqueando o DELETE
+        console.warn('Deleção retornou 200 OK mas 0 linhas afetadas. Verifique RLS.');
+        alert('O banco de dados recebeu o comando mas recusou a exclusão por segurança (RLS). Por favor, execute o script de reparo no Dashboard do Supabase.');
+      } else {
+        console.log('Cliente excluído com sucesso:', data);
+        await carregarClientes();
+      }
+    } catch (err) {
+      console.error('Erro inesperado:', err);
+      alert('Ocorreu um erro inesperado ao tentar excluir.');
+    } finally {
+      setLoading(false);
+      setConfirmDeleteClient({ open: false, id: null, nome: '' });
     }
-    setConfirmDeleteClient({ open: false, id: null, nome: '' });
   };
 
   const clientesFiltrados = clientes.filter(c =>
@@ -259,13 +276,13 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
           </Card>
         ) : (
           clientesFiltrados.map((cliente) => (
-            <ClientCard 
-                key={cliente.id} 
-                cliente={cliente} 
-                openEditModal={openEditModal} 
-                formatCurrency={formatCurrency} 
-                deleteClient={handleDeleteClient} 
-                vendedores={sellers && sellers.length > 0 ? sellers : localSellers} 
+            <ClientCard
+              key={cliente.id}
+              cliente={cliente}
+              openEditModal={openEditModal}
+              formatCurrency={formatCurrency}
+              deleteClient={handleDeleteClient}
+              vendedores={sellers && sellers.length > 0 ? sellers : localSellers}
             />
           ))
         )}
@@ -281,26 +298,26 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
               </button>
               <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Novo Cliente</h3>
             </div>
-            
+
             <div className="space-y-4">
-              <InputField 
-                label="Nome *" 
-                type="text" 
-                value={addForm.nome} 
-                onChange={(e: any) => setAddForm({ ...addForm, nome: e.target.value })} 
+              <InputField
+                label="Nome *"
+                type="text"
+                value={addForm.nome}
+                onChange={(e: any) => setAddForm({ ...addForm, nome: e.target.value })}
                 placeholder="Nome do cliente"
               />
-              
-              <InputField 
-                label="Telefone" 
-                type="tel" 
-                value={addForm.telefone} 
-                onChange={(e: any) => setAddForm({ ...addForm, telefone: e.target.value })} 
+
+              <InputField
+                label="Telefone"
+                type="tel"
+                value={addForm.telefone}
+                onChange={(e: any) => setAddForm({ ...addForm, telefone: e.target.value })}
                 placeholder="(00) 00000-0000"
               />
             </div>
 
-            <button 
+            <button
               onClick={handleAddClient}
               className="w-full py-5 bg-[#BC2A1A] text-white rounded-[24px] font-black uppercase text-xs tracking-widest active:scale-95"
             >
@@ -320,27 +337,27 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
               </button>
               <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Editar Cliente</h3>
             </div>
-            
+
             <div className="space-y-4">
               {/* Removido o display apenas de texto e adicionado Input editável */}
-              <InputField 
-                label="Nome do Cliente" 
-                type="text" 
-                value={editForm.nome} 
-                onChange={(e: any) => setEditForm({ ...editForm, nome: e.target.value })} 
+              <InputField
+                label="Nome do Cliente"
+                type="text"
+                value={editForm.nome}
+                onChange={(e: any) => setEditForm({ ...editForm, nome: e.target.value })}
                 placeholder="Nome do cliente"
               />
-              
-              <InputField 
-                label="Telefone" 
-                type="tel" 
-                value={editForm.telefone} 
-                onChange={(e: any) => setEditForm({ ...editForm, telefone: e.target.value })} 
+
+              <InputField
+                label="Telefone"
+                type="tel"
+                value={editForm.telefone}
+                onChange={(e: any) => setEditForm({ ...editForm, telefone: e.target.value })}
                 placeholder="(00) 00000-0000"
               />
             </div>
 
-            <button 
+            <button
               onClick={handleSaveEdit}
               className="w-full py-5 bg-[#BC2A1A] text-white rounded-[24px] font-black uppercase text-xs tracking-widest active:scale-95"
             >
@@ -383,88 +400,88 @@ export const ClientsView = ({ setActiveTab, formatCurrency, sellers }: ClientsVi
 
 // Componente do Card de Cliente extraído
 const ClientCard = ({ cliente, openEditModal, formatCurrency, deleteClient, vendedores }: { cliente: ClienteComVendas, openEditModal: any, formatCurrency: any, deleteClient: any, vendedores: any[] }) => {
-    const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-    return (
-        <Card className="p-6 rounded-[24px]">
-            <div className="flex items-start justify-between">
-            <div className="flex-1">
-                <h3 className="text-lg font-black text-slate-900 uppercase">{cliente.nome}</h3>
-                {cliente.telefone && (
-                <div className="flex flex-col gap-1 mt-2">
-                    <p className="text-xs text-slate-600">📱 {cliente.telefone}</p>
-                </div>
-                )}
-                <div className="mt-2 flex gap-3">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md">
-                        {cliente.total_compras} compras
-                    </span>
-                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-md">
-                        Total: {formatCurrency(cliente.total_gasto)}
-                    </span>
-                </div>
+  return (
+    <Card className="p-6 rounded-[24px]">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h3 className="text-lg font-black text-slate-900 uppercase">{cliente.nome}</h3>
+          {cliente.telefone && (
+            <div className="flex flex-col gap-1 mt-2">
+              <p className="text-xs text-slate-600">📱 {cliente.telefone}</p>
             </div>
-            <div className="flex items-center gap-2">
-                <button 
-                onClick={() => openEditModal(cliente)}
-                className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-[#BC2A1A] hover:text-white flex items-center justify-center transition-colors border-none"
-                title="Editar Cliente"
-                >
-                <Pencil size={16} />
-                </button>
-                <button 
-                onClick={() => deleteClient(cliente.id, cliente.nome)}
-                className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-red-500 flex items-center justify-center transition-colors border-none"
-                title="Excluir Cliente"
-                >
-                <Trash2 size={16} />
-                </button>
-                <button 
-                onClick={() => setExpanded(!expanded)}
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all border-none ${expanded ? 'bg-[#BC2A1A] text-white shadow-lg shadow-[#BC2A1A]/30 scale-105' : 'bg-[#BC2A1A]/10 text-[#BC2A1A] hover:bg-[#BC2A1A]/20'}`}
-                title={expanded ? "Ocultar Histórico" : "Ver Histórico de Compras"}
-                >
-                <ShoppingBag size={20} />
-                </button>
-            </div>
-            </div>
+          )}
+          <div className="mt-2 flex gap-3">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50 px-2 py-1 rounded-md">
+              {cliente.total_compras} compras
+            </span>
+            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-md">
+              Total: {formatCurrency(cliente.total_gasto)}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => openEditModal(cliente)}
+            className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-600 hover:bg-[#BC2A1A] hover:text-white flex items-center justify-center transition-colors border-none"
+            title="Editar Cliente"
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            onClick={() => deleteClient(cliente.id, cliente.nome)}
+            className="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-red-500 flex items-center justify-center transition-colors border-none"
+            title="Excluir Cliente"
+          >
+            <Trash2 size={16} />
+          </button>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all border-none ${expanded ? 'bg-[#BC2A1A] text-white shadow-lg shadow-[#BC2A1A]/30 scale-105' : 'bg-[#BC2A1A]/10 text-[#BC2A1A] hover:bg-[#BC2A1A]/20'}`}
+            title={expanded ? "Ocultar Histórico" : "Ver Histórico de Compras"}
+          >
+            <ShoppingBag size={20} />
+          </button>
+        </div>
+      </div>
 
-            {expanded && (
-                <div className="mt-6 pt-6 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
-                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest Mb-3">Histórico de Compras</h4>
-                    {cliente.vendas && cliente.vendas.length > 0 ? (
-                        <div className="space-y-3 mt-3">
-                            {cliente.vendas.map((venda) => (
-                                <div key={venda.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <p className="text-[10px] text-slate-400 font-bold">{new Date(venda.data).toLocaleDateString('pt-BR')}</p>
-                                            {venda.vendedor_ids && venda.vendedor_ids.length > 0 && (
-                                                <>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                                    <p className="text-[9px] font-black text-[#BC2A1A] uppercase tracking-wider">
-                                                        {venda.vendedores_nomes || venda.vendedor_ids.map(id => {
-                                                          const vendedor = vendedores.find(v => v.id === id);
-                                                          return vendedor ? vendedor.name : `(ID: ${id?.slice(0,5)}...)`; 
-                                                        }).join(', ')}
-                                                    </p>
-                                                </>
-                                            )}
-                                        </div>
-                                        <p className="text-xs font-bold text-slate-700 uppercase">{venda.produto?.nome || 'Produto desconhecido'}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-xs font-black text-slate-900">{formatCurrency(venda.valor_total)}</p>
-                                        <p className="text-[10px] text-slate-500 font-bold">x{venda.quantidade}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center py-4 text-xs text-slate-400 font-medium">Nenhuma compra registrada</p>
-                    )}
+      {expanded && (
+        <div className="mt-6 pt-6 border-t border-slate-100 animate-in slide-in-from-top-2 duration-300">
+          <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest Mb-3">Histórico de Compras</h4>
+          {cliente.vendas && cliente.vendas.length > 0 ? (
+            <div className="space-y-3 mt-3">
+              {cliente.vendas.map((venda) => (
+                <div key={venda.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="text-[10px] text-slate-400 font-bold">{new Date(venda.data).toLocaleDateString('pt-BR')}</p>
+                      {venda.vendedor_ids && venda.vendedor_ids.length > 0 && (
+                        <>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <p className="text-[9px] font-black text-[#BC2A1A] uppercase tracking-wider">
+                            {venda.vendedores_nomes || venda.vendedor_ids.map(id => {
+                              const vendedor = vendedores.find(v => v.id === id);
+                              return vendedor ? vendedor.name : `(ID: ${id?.slice(0, 5)}...)`;
+                            }).join(', ')}
+                          </p>
+                        </>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-slate-700 uppercase">{venda.produto?.nome || 'Produto desconhecido'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-black text-slate-900">{formatCurrency(venda.valor_total)}</p>
+                    <p className="text-[10px] text-slate-500 font-bold">x{venda.quantidade}</p>
+                  </div>
                 </div>
-            )}
-        </Card>
-    );
+              ))}
+            </div>
+          ) : (
+            <p className="text-center py-4 text-xs text-slate-400 font-medium">Nenhuma compra registrada</p>
+          )}
+        </div>
+      )}
+    </Card>
+  );
 };
