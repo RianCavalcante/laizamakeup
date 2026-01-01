@@ -45,15 +45,36 @@ export default function RootLayout({
           <main>{children}</main>
         </AuthProvider>
         
-        {/* Service Worker Registration */}
+        {/* Service Worker Registration & Auto-Update Logic */}
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js').then(
-                  (registration) => console.log('SW registered:', registration),
-                  (err) => console.log('SW registration failed:', err)
+                  (reg) => {
+                    console.log('SW registrado com sucesso');
+                    
+                    // Se houver uma atualização, o novo SW fica 'waiting'
+                    reg.onupdatefound = () => {
+                      const newWorker = reg.installing;
+                      newWorker.onstatechange = () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                          // Nova versão pronta! Força o reload para aplicar os novos arquivos.
+                          window.location.reload();
+                        }
+                      };
+                    };
+                  },
+                  (err) => console.log('Erro ao registrar SW:', err)
                 );
+              });
+
+              // Recarregar quando o novo SW assume o controle
+              let refreshing = false;
+              navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                refreshing = true;
+                window.location.reload();
               });
             }
           `

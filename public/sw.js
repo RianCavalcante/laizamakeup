@@ -1,5 +1,5 @@
 // Service Worker para PWA
-const CACHE_NAME = 'laiza-makeup-v1';
+const CACHE_NAME = 'laiza-makeup-v2'; // Incrementando versão para forçar atualização
 const urlsToCache = [
   '/',
   '/manifest.json'
@@ -30,12 +30,20 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch - serve do cache quando offline
+// Estratégia Network First: Tenta rede primeiro para garantir atualizações, se falhar vai pro cache (ideal para Android/PWA)
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        return response || fetch(event.request);
+        // Se a rede estiver ok, atualiza o cache e retorna a resposta
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, response.clone());
+          return response;
+        });
+      })
+      .catch(() => {
+        // Se a rede falhar (offline), tenta o cache
+        return caches.match(event.request);
       })
   );
 });
