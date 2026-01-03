@@ -85,14 +85,13 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       const minMs = 3000; // 3 segundos cravados de Loading
 
       try {
+        // Busca dados essenciais (OBRIGATÓRIOS)
         const [
           { data: prodData, error: prodError },
           { data: repData, error: repError },
           { data: salesData, error: salesError },
           { data: sellersData, error: sellersError },
-          { data: clientsData, error: clientsError },
-          { data: statsData, error: statsError },
-          { data: stockData, error: stockError }
+          { data: clientsData, error: clientsError }
         ] = await Promise.all([
           withRetry(async () =>
             await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
@@ -108,22 +107,36 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
               .limit(100)
           ),
           withRetry(async () => await supabase.from('vendedores').select('id,nome')),
-          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone')),
-          // OTIMIZAÇÃO: Busca totais calculados no servidor (rápido!)
-          withRetry(async () => await supabase.rpc('get_dashboard_totals')),
-          // OTIMIZAÇÃO: Busca estoque real calculado no servidor
-          withRetry(async () => await supabase.rpc('get_products_stock'))
+          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
         ]) as any;
+
+        // Busca dados OPCIONAIS (RPCs) - se falhar, não quebra o app
+        let statsData = null;
+        let stockData = null;
+
+        try {
+          const statsResponse = await supabase.rpc('get_dashboard_totals');
+          if (!statsResponse.error) statsData = statsResponse.data;
+        } catch (err) {
+          console.warn('RPC get_dashboard_totals não disponível, usando cálculo local');
+        }
+
+        try {
+          const stockResponse = await supabase.rpc('get_products_stock');
+          if (!stockResponse.error) stockData = stockResponse.data;
+        } catch (err) {
+          console.warn('RPC get_products_stock não disponível, usando cálculo local');
+        }
 
         // Remoção do delay artificial pois agora temos performance real
         const elapsed = Date.now() - startedAt;
         if (cancelled) return;
 
-        if (prodError || repError || salesError || sellersError || clientsError || statsError || stockError) {
-          throw prodError || repError || salesError || sellersError || clientsError || statsError || stockError;
+        if (prodError || repError || salesError || sellersError || clientsError) {
+          throw prodError || repError || salesError || sellersError || clientsError;
         }
 
-        // Stats do Dashboard (RPC)
+        // Stats do Dashboard (RPC) - opcional
         if (statsData && statsData.length > 0) {
           setDashboardStats({
             totalRevenue: statsData[0].total_revenue,
@@ -132,7 +145,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           });
         }
 
-        // Mapa de estoque Server-Side
+        // Mapa de estoque Server-Side - opcional
         const stockMap = new Map();
         if (stockData) {
           stockData.forEach((item: any) => {
