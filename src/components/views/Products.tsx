@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import Image from 'next/image';
 import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { InputField } from '../ui/InputField';
@@ -176,19 +175,8 @@ export const ProductsView = ({
           filteredInventory.map(p => (
             <Card key={p.id} noPadding className="p-4 text-left">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 flex-shrink-0 overflow-hidden relative">
-                  {p.image ? (
-                    <Image
-                      src={p.image}
-                      alt={p.name || 'Produto'}
-                      fill
-                      sizes="64px"
-                      className="object-cover"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-200"><ImageIcon size={20} /></div>
-                  )}
+                <div className="w-16 h-16 rounded-[20px] bg-slate-50 border border-[#FFDCD8] overflow-hidden flex-shrink-0">
+                  {p.image ? <img src={p.image} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full flex items-center justify-center text-slate-200"><ImageIcon size={20} /></div>}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
@@ -239,15 +227,7 @@ export const ProductsView = ({
             >
               {formData.image ? (
                 <>
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={formData.image}
-                      alt="Produto"
-                      fill
-                      sizes="150px"
-                      className="object-cover"
-                    />
-                  </div>
+                  <img src={formData.image} className="w-full h-full object-cover" alt="Produto" />
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

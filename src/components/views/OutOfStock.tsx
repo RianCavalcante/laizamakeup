@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { Card } from '../ui/Card';
 import { BackButton } from '../ui/BackButton';
 import { CheckCircle2, ImageIcon, Search } from 'lucide-react';
@@ -43,18 +42,7 @@ export const OutOfStockView = ({ inventory, setActiveTab, openReplenishModal }: 
                     <Card key={p.id} noPadding className="p-4 border-l-4 border-l-[#BC2A1A] text-left">
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-slate-100 to-slate-50 flex-shrink-0 overflow-hidden relative">
-                                {p.image ? (
-                                    <Image
-                                        src={p.image}
-                                        alt={p.name || 'Produto'}
-                                        fill
-                                        sizes="64px"
-                                        className="object-cover"
-                                        loading="lazy"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={18} /></div>
-                                )}
+                                {p.image ? <img src={p.image} className="w-full h-full object-cover" alt="" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={18} /></div>}
                             </div>
                             <div className="flex-1 min-w-0 text-left">
                                 <span className="block font-black text-slate-900 text-sm uppercase truncate mb-1">{p.name}</span>
