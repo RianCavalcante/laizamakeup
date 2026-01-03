@@ -48,7 +48,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   const [loadingError, setLoadingError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; productId: string | null; productName?: string }>({ open: false, productId: null });
-  
+
   // Estados de Dados
   const [products, setProducts] = useState<any[]>([]);
   const [replenishments, setReplenishments] = useState<any[]>([]);
@@ -81,8 +81,6 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       setActionError(null);
 
       const startedAt = Date.now();
-      const minMs = 600;
-      const maxMs = 2000;
 
       try {
         const [
@@ -99,17 +97,14 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
           withRetry(async () =>
-            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes, clientes(nome)')
+            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes')
           ),
           withRetry(async () => await supabase.from('vendedores').select('id,nome')),
-          withRetry(async () => await supabase.from('clientes').select('*'))
+          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
         ]) as any;
 
-        const elapsed = Date.now() - startedAt;
-        const target = Math.min(maxMs, Math.max(minMs, elapsed));
-        if (elapsed < target) {
-          await new Promise(resolve => setTimeout(resolve, target - elapsed));
-        }
+        // Delay artificial removido para performance máxima
+        if (cancelled) return;
 
         if (cancelled) return;
 
@@ -127,7 +122,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             active: p.ativo ?? true
           })));
         }
-        
+
         if (repData) {
           setReplenishments(repData.map((r: any) => ({
             ...r,
@@ -162,7 +157,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         if (clientsData) {
           setClients(clientsData);
         }
-        
+
         setIsLoaded(true);
         setIsInitialLoad(false);
       } catch (err: any) {
@@ -181,11 +176,11 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   }, []);
 
   // Estado para modal de reposição rápida
-  const [replenishModal, setReplenishModal] = useState<any>({ 
-    open: false, 
-    product: null, 
-    qty: '', 
-    date: new Date().toISOString().split('T')[0] 
+  const [replenishModal, setReplenishModal] = useState<any>({
+    open: false,
+    product: null,
+    qty: '',
+    date: new Date().toISOString().split('T')[0]
   });
 
   // Funções de Negócio com Supabase
@@ -200,8 +195,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       }).eq('id', data.id);
 
       if (!error) {
-        setProducts(prev => prev.map(p => p.id === data.id ? { 
-          ...p, 
+        setProducts(prev => prev.map(p => p.id === data.id ? {
+          ...p,
           ...data,
           purchasePrice: Number(data.purchasePrice),
           basePrice: Number(data.basePrice)
@@ -216,9 +211,9 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         imagem: data.image || null,
         ativo: true
       };
-      
+
       const { data: created, error } = await supabase.from('produtos').insert(newProduct).select().single();
-      
+
       if (created && !error) {
         const formattedProduct = {
           ...created,
@@ -233,8 +228,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           await addReplenishment(created.id, data.initialStock, data.purchasePrice, new Date().toISOString());
         }
       } else if (error) {
-         console.error('Erro ao criar produto:', error);
-         alert('Erro ao criar produto. Verifique se os dados estão corretos.');
+        console.error('Erro ao criar produto:', error);
+        alert('Erro ao criar produto. Verifique se os dados estão corretos.');
       }
     }
   };
@@ -252,10 +247,10 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
     const { error } = await supabase.from('vendas').delete().eq('id', confirmDeleteSale.saleId);
     if (!error) {
-       setSales(prev => prev.filter(s => s.id !== confirmDeleteSale.saleId));
+      setSales(prev => prev.filter(s => s.id !== confirmDeleteSale.saleId));
     } else {
-       console.error('Erro ao excluir venda:', error);
-       alert('Não foi possível excluir a venda.');
+      console.error('Erro ao excluir venda:', error);
+      alert('Não foi possível excluir a venda.');
     }
     setConfirmDeleteSale({ open: false, saleId: null });
   };
@@ -271,7 +266,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
     };
 
     const { data: created, error } = await supabase.from('reabastecimentos').insert(newEntry).select().single();
-    
+
     if (created && !error) {
       const formatted = {
         ...created,
@@ -292,11 +287,11 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
   const handleReplenishSubmit = async () => {
     if (!replenishModal.product || !replenishModal.qty) return;
-    
+
     const success = await addReplenishment(
-      replenishModal.product.id, 
-      replenishModal.qty, 
-      replenishModal.product.purchasePrice, 
+      replenishModal.product.id,
+      replenishModal.qty,
+      replenishModal.product.purchasePrice,
       new Date(replenishModal.date).toISOString()
     );
 
@@ -306,15 +301,15 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   };
 
   const addSale = async (
-    productId: string, 
-    quantity: number | string, 
-    totalValue: number | string, 
+    productId: string,
+    quantity: number | string,
+    totalValue: number | string,
     sellerIds: string[],
     customerName: string,
     customerPhone: string
   ) => {
     setActionError(null);
-    
+
     let clienteId = null;
 
     // Se tem nome de cliente, buscar/criar cliente
@@ -329,7 +324,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       if (existingClient) {
         // Cliente já existe
         clienteId = existingClient.id;
-        
+
         // Atualizar telefone se fornecido
         if (customerPhone && customerPhone.trim()) {
           await supabase
@@ -357,8 +352,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
     // Snapshot dos nomes dos vendedores
     const sellerNamesSnapshot = sellerIds.map(id => {
-        const s = sellers.find(sel => sel.id === id);
-        return s ? s.name : '';
+      const s = sellers.find(sel => sel.id === id);
+      return s ? s.name : '';
     }).filter(Boolean).join(', ');
 
     const newSale = {
@@ -376,20 +371,20 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
     const { data: created, error } = await supabase.from('vendas').insert(newSale).select().single();
 
     if (created && !error) {
-        const formatted = {
-            ...created,
-            productId: created.produto_id ?? created.product_id,
-            totalValue: created.valor_total ?? created.total_value,
-            sellerIds: created.vendedor_ids ?? created.seller_ids,
-            quantity: created.quantidade ?? created.quantity,
-            date: created.data ?? created.date,
-            clienteId: created.cliente_id,
-            clienteNome: created.cliente_nome ?? customerName,
-            vendedoresNomes: created.vendedores_nomes ?? sellerNamesSnapshot
-        };
-        setSales([...sales, formatted]);
+      const formatted = {
+        ...created,
+        productId: created.produto_id ?? created.product_id,
+        totalValue: created.valor_total ?? created.total_value,
+        sellerIds: created.vendedor_ids ?? created.seller_ids,
+        quantity: created.quantidade ?? created.quantity,
+        date: created.data ?? created.date,
+        clienteId: created.cliente_id,
+        clienteNome: created.cliente_nome ?? customerName,
+        vendedoresNomes: created.vendedores_nomes ?? sellerNamesSnapshot
+      };
+      setSales([...sales, formatted]);
     } else if (error) {
-        setActionError('Não foi possível salvar a venda.');
+      setActionError('Não foi possível salvar a venda.');
     }
   };
 
@@ -399,11 +394,11 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       const totalReplenished = replenishments
         .filter(r => r.productId === product.id)
         .reduce((sum, r) => sum + Number(r.quantity), 0);
-      
+
       const totalSold = sales
         .filter(s => s.productId === product.id)
         .reduce((sum, s) => sum + Number(s.quantity), 0);
-      
+
       const currentStock = totalReplenished - totalSold;
       return { ...product, currentStock };
     });
@@ -431,7 +426,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FFDCD8]/20 text-slate-900 font-sans overflow-x-hidden">
-      
+
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <MobileHeader activeTab={activeTab} setActiveTab={setActiveTab} />
 
@@ -452,43 +447,43 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             isInitialLoad ? (
               <SkeletonLoader />
             ) : (
-              <Overview 
-                sales={sales} 
-                products={products} 
-                inventory={inventory} 
-                sellers={sellers} 
-                setActiveTab={setActiveTab} 
-                formatCurrency={formatCurrency} 
+              <Overview
+                sales={sales}
+                products={products}
+                inventory={inventory}
+                sellers={sellers}
+                setActiveTab={setActiveTab}
+                formatCurrency={formatCurrency}
               />
             )
           )}
 
           {activeTab === 'products' && (
-             isInitialLoad ? (
-               <ProductSkeleton />
-             ) : (
-               <ProductsView 
-                  inventory={inventory}
-                  setActiveTab={setActiveTab}
-                  formatCurrency={formatCurrency}
-                  getUnitProfit={getUnitProfit}
-                  saveProduct={saveProduct}
-                  deleteProduct={deleteProduct}
-                  openReplenishModal={openReplenishModal}
-                  setProducts={setProducts}
-                  setReplenishments={setReplenishments}
-               />
-             )
+            isInitialLoad ? (
+              <ProductSkeleton />
+            ) : (
+              <ProductsView
+                inventory={inventory}
+                setActiveTab={setActiveTab}
+                formatCurrency={formatCurrency}
+                getUnitProfit={getUnitProfit}
+                saveProduct={saveProduct}
+                deleteProduct={deleteProduct}
+                openReplenishModal={openReplenishModal}
+                setProducts={setProducts}
+                setReplenishments={setReplenishments}
+              />
+            )
           )}
 
           {activeTab === 'outOfStock' && (
             isInitialLoad ? (
               <OutOfStockSkeleton />
             ) : (
-              <OutOfStockView 
-                  inventory={inventory}
-                  setActiveTab={setActiveTab}
-                  openReplenishModal={openReplenishModal}
+              <OutOfStockView
+                inventory={inventory}
+                setActiveTab={setActiveTab}
+                openReplenishModal={openReplenishModal}
               />
             )
           )}
@@ -497,23 +492,23 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             isInitialLoad ? (
               <SalesSkeleton />
             ) : (
-              <SalesView 
-                  inventory={inventory}
-                  sales={sales}
-                  products={products}
-                  sellers={sellers}
-                  clients={clients}
-                  setActiveTab={setActiveTab}
-                  addSale={addSale}
-                  formatCurrency={formatCurrency}
-                  deleteSale={deleteSale}
-                  formatDate={formatDate}
+              <SalesView
+                inventory={inventory}
+                sales={sales}
+                products={products}
+                sellers={sellers}
+                clients={clients}
+                setActiveTab={setActiveTab}
+                addSale={addSale}
+                formatCurrency={formatCurrency}
+                deleteSale={deleteSale}
+                formatDate={formatDate}
               />
             )
           )}
 
           {activeTab === 'clients' && (
-            <ClientsView 
+            <ClientsView
               setActiveTab={setActiveTab}
               formatCurrency={formatCurrency}
               sellers={sellers} // Passando lista de vendedores
@@ -525,22 +520,22 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
       {/* Modal de Reposição (Global) */}
       {replenishModal.open && (
-         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4 z-[110]">
-           <Card className="w-full max-w-sm p-8 space-y-6 rounded-t-[40px] sm:rounded-[40px] shadow-2xl border-none text-left">
-              <div className="flex justify-between items-center text-left">
-                <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Repor Lote</h3>
-                <button onClick={() => setReplenishModal({ ...replenishModal, open: false })} className="text-slate-300">
-                  <X size={24} />
-                </button>
-              </div>
-              <div className="space-y-5">
-                <p className="text-[11px] font-black text-[#BC2A1A] uppercase tracking-widest border-b border-[#FFDCD8] pb-2 text-left">{replenishModal.product?.name}</p>
-                <InputField label="Data" type="date" value={replenishModal.date} onChange={(e: any) => setReplenishModal({...replenishModal, date: e.target.value})} />
-                <InputField label="Quantidade" type="number" value={replenishModal.qty} onChange={(e: any) => setReplenishModal({...replenishModal, qty: e.target.value})} placeholder="0" autoFocus />
-              </div>
-      <button onClick={handleReplenishSubmit} className="w-full py-5 bg-[#BC2A1A] text-white rounded-[24px] font-black uppercase text-xs tracking-widest active:scale-95">Confirmar Reposição</button>
-         </Card>
-         </div>
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-4 z-[110]">
+          <Card className="w-full max-w-sm p-8 space-y-6 rounded-t-[40px] sm:rounded-[40px] shadow-2xl border-none text-left">
+            <div className="flex justify-between items-center text-left">
+              <h3 className="text-xl font-black text-slate-900 uppercase leading-none">Repor Lote</h3>
+              <button onClick={() => setReplenishModal({ ...replenishModal, open: false })} className="text-slate-300">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="space-y-5">
+              <p className="text-[11px] font-black text-[#BC2A1A] uppercase tracking-widest border-b border-[#FFDCD8] pb-2 text-left">{replenishModal.product?.name}</p>
+              <InputField label="Data" type="date" value={replenishModal.date} onChange={(e: any) => setReplenishModal({ ...replenishModal, date: e.target.value })} />
+              <InputField label="Quantidade" type="number" value={replenishModal.qty} onChange={(e: any) => setReplenishModal({ ...replenishModal, qty: e.target.value })} placeholder="0" autoFocus />
+            </div>
+            <button onClick={handleReplenishSubmit} className="w-full py-5 bg-[#BC2A1A] text-white rounded-[24px] font-black uppercase text-xs tracking-widest active:scale-95">Confirmar Reposição</button>
+          </Card>
+        </div>
       )}
 
       {/* Modal de confirmação de exclusão */}
