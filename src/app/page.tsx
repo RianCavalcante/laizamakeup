@@ -99,30 +99,21 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       setActionError(null);
 
       try {
+        // Otimização Extrema: Limite de 20 produtos para garantir carregamento inicial
         const { data: prodData, error: prodError } = await withRetry(async () =>
-          await supabase.from('produtos').select('*')
+          await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo').limit(20)
         );
 
         if (cancelled) return;
         if (prodError) throw prodError;
 
-        let statsData = null;
-        let stockData = null;
+        // RPCs desativadas temporariamente
+        const statsData: any[] = [];
+        const stockData: any[] = [];
 
-        try {
-          const statsResponse = await supabase.rpc('get_dashboard_totals');
-          if (!statsResponse.error) statsData = statsResponse.data;
-        } catch (err) {
-          console.warn('RPC get_dashboard_totals n?o dispon?vel, usando c?lculo local');
-        }
+        /* RPC CODE COMMENTED OUT */
 
-        try {
-          const stockResponse = await supabase.rpc('get_products_stock');
-          if (!stockResponse.error) stockData = stockResponse.data;
-        } catch (err) {
-          console.warn('RPC get_products_stock n?o dispon?vel, usando c?lculo local');
-        }
-
+        // Mantendo lógica mas segura para arrays vazios
         if (statsData && statsData.length > 0) {
           setDashboardStats({
             totalRevenue: statsData[0].total_revenue,
@@ -132,7 +123,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         }
 
         const stockMap = new Map();
-        if (stockData) {
+        if (stockData && stockData.length > 0) {
           stockData.forEach((item: any) => {
             stockMap.set(item.product_id, item.stock);
           });
@@ -153,19 +144,22 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         setIsLoaded(true);
         setIsInitialLoad(false);
 
+        // Limites reduzidos para 50 para garantir estabilidade
+        const limitSafe = 50;
+
         const results = await Promise.allSettled([
-          fetchAllPaged('reabastecimentos', '*', 'data'),
-          fetchAllPaged('vendas', '*', 'data'),
-          withRetry(async () => await supabase.from('vendedores').select('*')),
-          withRetry(async () => await supabase.from('clientes').select('*'))
+          withRetry(async () => await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data').order('data', { ascending: false }).limit(limitSafe)),
+          withRetry(async () => await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes').order('data', { ascending: false }).limit(limitSafe)),
+          withRetry(async () => await supabase.from('vendedores').select('id,nome').limit(50)),
+          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone').limit(50))
         ]);
 
         if (cancelled) return;
 
         const [repResult, salesResult, sellersResult, clientsResult] = results;
 
-        if (repResult.status === 'fulfilled') {
-          setReplenishments(repResult.value.map((r: any) => ({
+        if (repResult.status === 'fulfilled' && repResult.value?.data) {
+          setReplenishments((repResult.value.data as any[]).map((r: any) => ({
             ...r,
             productId: r.produto_id ?? r.product_id,
             unitPrice: r.preco_unitario ?? r.unit_price,
@@ -175,8 +169,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           })));
         }
 
-        if (salesResult.status === 'fulfilled') {
-          setSales(salesResult.value.map((s: any) => ({
+        if (salesResult.status === 'fulfilled' && salesResult.value?.data) {
+          setSales((salesResult.value.data as any[]).map((s: any) => ({
             ...s,
             productId: s.produto_id ?? s.product_id,
             totalValue: s.valor_total ?? s.total_value,
@@ -189,35 +183,41 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         }
 
         if (sellersResult.status === 'fulfilled' && sellersResult.value?.data) {
-          setSellers(sellersResult.value.data.map((s: any) => ({
+          setSellers((sellersResult.value.data as any[]).map((s: any) => ({
             ...s,
             name: s.nome ?? s.name
           })));
         }
 
         if (clientsResult.status === 'fulfilled' && clientsResult.value?.data) {
-          setClients(clientsResult.value.data);
+          setClients((clientsResult.value.data as any[]).map((c: any) => ({
+            ...c,
+            name: c.nome ?? c.name,
+            phone: c.telefone ?? c.phone
+          })));
         }
       } catch (err: any) {
         if (cancelled) return;
 
-        console.error('❌ ERRO TÉCNICO CAPTURADO:', err);
-
+        // Extração robusta de erro
         let errorMsg = 'Erro desconhecido';
-        if (err?.message) {
-          errorMsg = err.message;
-        } else if (typeof err === 'string') {
-          errorMsg = err;
-        } else {
-          try {
-            errorMsg = JSON.stringify(err, null, 2);
-            if (errorMsg === '{}') errorMsg = String(err);
-          } catch (e) {
+        let errorDetails = {};
+
+        try {
+          if (err instanceof Error) {
+            errorMsg = err.message;
+            errorDetails = { name: err.name, message: err.message };
+          } else if (typeof err === 'object' && err !== null) {
+            errorMsg = (err as any).message || (err as any).error_description || JSON.stringify(err);
+            errorDetails = err;
+          } else {
             errorMsg = String(err);
           }
+        } catch (e) {
+          errorMsg = `Erro ao processar erro: ${String(e)}`;
         }
 
-        console.error('📝 Mensagem formatada:', errorMsg);
+        console.error('❌ ERRO TÉCNICO (Detalhado):', errorMsg, errorDetails);
         setLoadingError(`Erro técnico: ${errorMsg}`);
         setIsLoaded(true);
         setIsInitialLoad(false);
@@ -495,34 +495,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       <main className="flex-1 lg:ml-80 px-5 py-8 md:px-14 md:py-14 pt-20 lg:pt-8">{/* pt-20 for mobile header */}
         <div className="max-w-4xl mx-auto pb-32 space-y-4">
           {loadingError && (
-            <div className="rounded-2xl bg-red-50 border border-red-200 text-red-700 px-4 py-4 text-sm font-semibold flex flex-col gap-2">
-              <p className="flex items-center gap-2">❌ {loadingError}</p>
-
-              {/* Área de Debug para Mobile */}
-              <div className="mt-2 p-3 bg-slate-900 text-slate-50 text-xs font-mono rounded overflow-x-auto whitespace-pre-wrap">
-                DEBUG INFO: {loadingError}
-                <br />
-                User Agent: {typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}
-              </div>
-
-              <button
-                onClick={async () => {
-                  // Hard Reset
-                  if (window.navigator && navigator.serviceWorker) {
-                    const registrations = await navigator.serviceWorker.getRegistrations();
-                    for (const registration of registrations) {
-                      await registration.unregister();
-                    }
-                  }
-                  localStorage.clear();
-                  sessionStorage.clear();
-                  await supabase.auth.signOut();
-                  window.location.reload();
-                }}
-                className="mt-2 w-full py-3 bg-red-600 text-white rounded-lg font-bold text-xs uppercase shadow-sm active:scale-95"
-              >
-                🚨 CLIQUE AQUI SE NÃO FUNCIONAR (Reset Total)
-              </button>
+            <div className="rounded-2xl bg-red-50 border border-red-200 text-red-700 px-4 py-4 text-sm font-semibold">
+              ❌ {loadingError}
             </div>
           )}
 
