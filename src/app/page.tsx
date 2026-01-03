@@ -100,7 +100,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
       try {
         const { data: prodData, error: prodError } = await withRetry(async () =>
-          await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
+          await supabase.from('produtos').select('*')
         );
 
         if (cancelled) return;
@@ -154,10 +154,10 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         setIsInitialLoad(false);
 
         const results = await Promise.allSettled([
-          fetchAllPaged('reabastecimentos', 'id,produto_id,quantidade,preco_unitario,custo_total,data', 'data'),
-          fetchAllPaged('vendas', 'id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes', 'data'),
-          withRetry(async () => await supabase.from('vendedores').select('id,nome')),
-          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
+          fetchAllPaged('reabastecimentos', '*', 'data'),
+          fetchAllPaged('vendas', '*', 'data'),
+          withRetry(async () => await supabase.from('vendedores').select('*')),
+          withRetry(async () => await supabase.from('clientes').select('*'))
         ]);
 
         if (cancelled) return;
