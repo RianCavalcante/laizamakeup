@@ -107,11 +107,19 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         if (cancelled) return;
         if (prodError) throw prodError;
 
-        // RPCs desativadas temporariamente
+        // RPCs
         const statsData: any[] = [];
-        const stockData: any[] = [];
+        let stockData: any[] | null = null;
 
-        /* RPC CODE COMMENTED OUT */
+        /* RPC Dashboard Desativada (statsData vazio) */
+
+        // RPC de estoque REATIVADA (essencial para não mostrar 'Esgotado')
+        try {
+          const stockResponse = await supabase.rpc('get_products_stock');
+          if (!stockResponse.error) stockData = stockResponse.data;
+        } catch (err) {
+          console.warn('RPC get_products_stock não disponível');
+        }
 
         // Mantendo lógica mas segura para arrays vazios
         if (statsData && statsData.length > 0) {
