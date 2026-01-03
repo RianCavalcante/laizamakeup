@@ -44,37 +44,24 @@ export default function RootLayout({
         <AuthProvider>
           <main>{children}</main>
         </AuthProvider>
-        
-        {/* Service Worker Registration & Auto-Update Logic */}
+
+        {/* PWA DESABILITADO - Script que remove Service Workers instalados */}
         <script dangerouslySetInnerHTML={{
           __html: `
             if ('serviceWorker' in navigator) {
-              window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(
-                  (reg) => {
-                    console.log('SW registrado com sucesso');
-                    
-                    // Se houver uma atualização, o novo SW fica 'waiting'
-                    reg.onupdatefound = () => {
-                      const newWorker = reg.installing;
-                      newWorker.onstatechange = () => {
-                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                          // Nova versão pronta! Força o reload para aplicar os novos arquivos.
-                          window.location.reload();
-                        }
-                      };
-                    };
-                  },
-                  (err) => console.log('Erro ao registrar SW:', err)
-                );
+              navigator.serviceWorker.getRegistrations().then((registrations) => {
+                registrations.forEach((registration) => {
+                  registration.unregister();
+                  console.log('Service Worker removido');
+                });
               });
-
-              // Recarregar quando o novo SW assume o controle
-              let refreshing = false;
-              navigator.serviceWorker.addEventListener('controllerchange', () => {
-                if (refreshing) return;
-                refreshing = true;
-                window.location.reload();
+              
+              // Limpa todos os caches
+              caches.keys().then((cacheNames) => {
+                cacheNames.forEach((cacheName) => {
+                  caches.delete(cacheName);
+                  console.log('Cache removido:', cacheName);
+                });
               });
             }
           `
