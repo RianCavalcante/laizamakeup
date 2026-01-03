@@ -81,6 +81,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       setActionError(null);
 
       const startedAt = Date.now();
+      const minMs = 3000; // 3 segundos cravados de Loading
 
       try {
         const [
@@ -103,7 +104,11 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
         ]) as any;
 
-        // Delay artificial removido para performance máxima
+        const elapsed = Date.now() - startedAt;
+        if (elapsed < minMs) {
+          await new Promise(resolve => setTimeout(resolve, minMs - elapsed));
+        }
+
         if (cancelled) return;
 
         if (cancelled) return;
