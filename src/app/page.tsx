@@ -76,40 +76,36 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       throw lastErr;
     };
 
+    const fetchAllPaged = async (table: string, select: string, orderBy: string, pageSize = 500) => {
+      const results: any[] = [];
+      let from = 0;
+      while (true) {
+        const to = from + pageSize - 1;
+        const { data, error } = await withRetry(async () =>
+          await supabase.from(table).select(select).order(orderBy, { ascending: false }).range(from, to)
+        );
+        if (error) throw error;
+        if (!data || data.length == 0) break;
+        results.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return results;
+    };
+
     const fetchData = async () => {
       setIsLoaded(false);
       setLoadingError(null);
       setActionError(null);
 
-      // Sem delay artificial - carrega o mais rápido possível
-
       try {
-        // Busca dados essenciais (OBRIGATÓRIOS)
-        const [
-          { data: prodData, error: prodError },
-          { data: repData, error: repError },
-          { data: salesData, error: salesError },
-          { data: sellersData, error: sellersError },
-          { data: clientsData, error: clientsError }
-        ] = await Promise.all([
-          withRetry(async () =>
-            await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
-          ),
-          withRetry(async () =>
-            await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
-          ),
-          // OTIMIZAÇÃO AGRESSIVA: Limita a 50 vendas para evitar timeout
-          withRetry(async () =>
-            await supabase.from('vendas')
-              .select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes')
-              .order('data', { ascending: false })
-              .limit(50)
-          ),
-          withRetry(async () => await supabase.from('vendedores').select('id,nome')),
-          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone').limit(100))
-        ]) as any;
+        const { data: prodData, error: prodError } = await withRetry(async () =>
+          await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
+        );
 
-        // Busca dados OPCIONAIS (RPCs) - se falhar, não quebra o app
+        if (cancelled) return;
+        if (prodError) throw prodError;
+
         let statsData = null;
         let stockData = null;
 
@@ -117,24 +113,16 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           const statsResponse = await supabase.rpc('get_dashboard_totals');
           if (!statsResponse.error) statsData = statsResponse.data;
         } catch (err) {
-          console.warn('RPC get_dashboard_totals não disponível, usando cálculo local');
+          console.warn('RPC get_dashboard_totals n?o dispon?vel, usando c?lculo local');
         }
 
         try {
           const stockResponse = await supabase.rpc('get_products_stock');
           if (!stockResponse.error) stockData = stockResponse.data;
         } catch (err) {
-          console.warn('RPC get_products_stock não disponível, usando cálculo local');
+          console.warn('RPC get_products_stock n?o dispon?vel, usando c?lculo local');
         }
 
-        // Sem delay - carrega instantaneamente
-        if (cancelled) return;
-
-        if (prodError || repError || salesError || sellersError || clientsError) {
-          throw prodError || repError || salesError || sellersError || clientsError;
-        }
-
-        // Stats do Dashboard (RPC) - opcional
         if (statsData && statsData.length > 0) {
           setDashboardStats({
             totalRevenue: statsData[0].total_revenue,
@@ -143,7 +131,6 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           });
         }
 
-        // Mapa de estoque Server-Side - opcional
         const stockMap = new Map();
         if (stockData) {
           stockData.forEach((item: any) => {
@@ -159,12 +146,26 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             basePrice: p.preco_venda ?? p.base_price,
             image: p.imagem ?? p.image,
             active: p.ativo ?? true,
-            serverStock: stockMap.get(p.id) ?? 0 // Armazena estoque real vindo do banco
+            serverStock: stockMap.get(p.id) ?? 0
           })));
         }
 
-        if (repData) {
-          setReplenishments(repData.map((r: any) => ({
+        setIsLoaded(true);
+        setIsInitialLoad(false);
+
+        const results = await Promise.allSettled([
+          fetchAllPaged('reabastecimentos', 'id,produto_id,quantidade,preco_unitario,custo_total,data', 'data'),
+          fetchAllPaged('vendas', 'id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes', 'data'),
+          withRetry(async () => await supabase.from('vendedores').select('id,nome')),
+          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
+        ]);
+
+        if (cancelled) return;
+
+        const [repResult, salesResult, sellersResult, clientsResult] = results;
+
+        if (repResult.status === 'fulfilled') {
+          setReplenishments(repResult.value.map((r: any) => ({
             ...r,
             productId: r.produto_id ?? r.product_id,
             unitPrice: r.preco_unitario ?? r.unit_price,
@@ -174,39 +175,49 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           })));
         }
 
-        if (salesData) {
-          setSales(salesData.map((s: any) => ({
+        if (salesResult.status === 'fulfilled') {
+          setSales(salesResult.value.map((s: any) => ({
             ...s,
             productId: s.produto_id ?? s.product_id,
             totalValue: s.valor_total ?? s.total_value,
             sellerIds: s.vendedor_ids ?? s.seller_ids,
             quantity: s.quantidade ?? s.quantity,
             date: s.data ?? s.date,
-            clienteNome: s.cliente_nome ?? s.clientes?.nome, // Prioriza nome salvo no snapshot
-            vendedoresNomes: s.vendedores_nomes // Novo campo snapshot
+            clienteNome: s.cliente_nome ?? s.clientes?.nome,
+            vendedoresNomes: s.vendedores_nomes
           })));
         }
 
-        if (sellersData) {
-          setSellers(sellersData.map((s: any) => ({
+        if (sellersResult.status === 'fulfilled' && sellersResult.value?.data) {
+          setSellers(sellersResult.value.data.map((s: any) => ({
             ...s,
             name: s.nome ?? s.name
           })));
         }
 
-        if (clientsData) {
-          setClients(clientsData);
+        if (clientsResult.status === 'fulfilled' && clientsResult.value?.data) {
+          setClients(clientsResult.value.data);
         }
-
-        setIsLoaded(true);
-        setIsInitialLoad(false);
-        setIsLoaded(true);
-        setIsInitialLoad(false);
       } catch (err: any) {
         if (cancelled) return;
-        console.error('Erro detalhado:', err);
-        // Exibe o erro real na tela para debug
-        const errorMsg = err.message || JSON.stringify(err) || 'Erro desconhecido';
+
+        console.error('❌ ERRO TÉCNICO CAPTURADO:', err);
+
+        let errorMsg = 'Erro desconhecido';
+        if (err?.message) {
+          errorMsg = err.message;
+        } else if (typeof err === 'string') {
+          errorMsg = err;
+        } else {
+          try {
+            errorMsg = JSON.stringify(err, null, 2);
+            if (errorMsg === '{}') errorMsg = String(err);
+          } catch (e) {
+            errorMsg = String(err);
+          }
+        }
+
+        console.error('📝 Mensagem formatada:', errorMsg);
         setLoadingError(`Erro técnico: ${errorMsg}`);
         setIsLoaded(true);
         setIsInitialLoad(false);
