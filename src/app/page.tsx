@@ -81,8 +81,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       setLoadingError(null);
       setActionError(null);
 
-      const startedAt = Date.now();
-      const minMs = 3000; // 3 segundos cravados de Loading
+      // Sem delay artificial - carrega o mais rápido possível
 
       try {
         // Busca dados essenciais (OBRIGATÓRIOS)
@@ -99,15 +98,15 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           withRetry(async () =>
             await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
-          // OTIMIZAÇÃO: Limita a 100 vendas para evitar timeout e travamento. O dashboard usa RPC para totais.
+          // OTIMIZAÇÃO AGRESSIVA: Limita a 50 vendas para evitar timeout
           withRetry(async () =>
             await supabase.from('vendas')
               .select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes')
               .order('data', { ascending: false })
-              .limit(100)
+              .limit(50)
           ),
           withRetry(async () => await supabase.from('vendedores').select('id,nome')),
-          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
+          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone').limit(100))
         ]) as any;
 
         // Busca dados OPCIONAIS (RPCs) - se falhar, não quebra o app
@@ -128,8 +127,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           console.warn('RPC get_products_stock não disponível, usando cálculo local');
         }
 
-        // Remoção do delay artificial pois agora temos performance real
-        const elapsed = Date.now() - startedAt;
+        // Sem delay - carrega instantaneamente
         if (cancelled) return;
 
         if (prodError || repError || salesError || sellersError || clientsError) {
