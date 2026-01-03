@@ -9,21 +9,33 @@ interface OverviewProps {
   sellers: any[];
   setActiveTab: (tab: string) => void;
   formatCurrency: (val: number) => string;
+  dashboardStats?: {
+    totalRevenue: number;
+    totalProfit: number;
+    salesCount: number;
+  };
 }
 
-export const Overview = ({ sales, products, inventory, sellers, setActiveTab, formatCurrency }: OverviewProps) => {
-  const totalRevenue = sales.reduce((sum, s) => sum + Number(s.totalValue), 0);
-  const totalProfit = sales.reduce((sum, s) => {
+export const Overview = ({ sales, products, inventory, sellers, setActiveTab, formatCurrency, dashboardStats }: OverviewProps) => {
+  // Se tivermos stats do backend (RPC), usamos. Senão, calculamos (fallback para lista filtrada/menor)
+  const totalRevenue = dashboardStats ? dashboardStats.totalRevenue : sales.reduce((sum, s) => sum + Number(s.totalValue), 0);
+
+  // Lucro: Se vier do backend usa, senão calcula (cuidado: se sales for parcial, isso será parcial)
+  const totalProfit = dashboardStats ? dashboardStats.totalProfit : sales.reduce((sum, s) => {
     const product = products.find(p => p.id === s.productId);
     if (!product) return sum;
     return sum + (Number(s.totalValue) - (Number(product.purchasePrice) * Number(s.quantity)));
   }, 0);
 
+  const totalSalesCount = dashboardStats ? dashboardStats.salesCount : sales.length;
+
   const totalUnitsInStock = inventory.reduce((sum, p) => sum + p.currentStock, 0);
   const zerados = inventory.filter(p => p.currentStock === 0).length;
-  
+
+  // Nota: O Ranking de vendedores continuará sendo baseado nas vendas carregadas (sales)
+  // Se sales for limitado a 100, o ranking será dos ultimos 100. Aceitável por enquanto para performance.
   const salesBySeller = sellers.map(seller => ({
-    name: seller.nome || seller.name, // Suporta ambos
+    name: seller.nome || seller.name,
     total: sales.filter(s => s.sellerIds.includes(seller.id)).reduce((sum, s) => sum + Number(s.totalValue), 0)
   })).sort((a, b) => b.total - a.total);
 
@@ -42,37 +54,37 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
           <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid1" width="40" height="40" patternUnits="userSpaceOnUse">
-                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1"/>
+                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1" />
               </pattern>
               <radialGradient id="fade1">
-                <stop offset="0%" stopOpacity="1"/>
-                <stop offset="100%" stopOpacity="0"/>
+                <stop offset="0%" stopOpacity="1" />
+                <stop offset="100%" stopOpacity="0" />
               </radialGradient>
               <mask id="mask1">
-                <rect width="100%" height="100%" fill="url(#fade1)"/>
+                <rect width="100%" height="100%" fill="url(#fade1)" />
               </mask>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid1)" mask="url(#mask1)"/>
+            <rect width="100%" height="100%" fill="url(#grid1)" mask="url(#mask1)" />
           </svg>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Qtd. Vendas</p>
-          <h2 className="text-2xl font-black text-slate-900 leading-tight relative z-10">{sales.length} vendas</h2>
+          <h2 className="text-2xl font-black text-slate-900 leading-tight relative z-10">{totalSalesCount} vendas</h2>
         </Card>
-        
+
         <Card className="min-h-[85px] flex flex-col justify-center text-left hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden" onClick={() => setActiveTab('outOfStock')}>
           <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid2" width="40" height="40" patternUnits="userSpaceOnUse">
-                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1"/>
+                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1" />
               </pattern>
               <radialGradient id="fade2">
-                <stop offset="0%" stopOpacity="1"/>
-                <stop offset="100%" stopOpacity="0"/>
+                <stop offset="0%" stopOpacity="1" />
+                <stop offset="100%" stopOpacity="0" />
               </radialGradient>
               <mask id="mask2">
-                <rect width="100%" height="100%" fill="url(#fade2)"/>
+                <rect width="100%" height="100%" fill="url(#fade2)" />
               </mask>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid2)" mask="url(#mask2)"/>
+            <rect width="100%" height="100%" fill="url(#grid2)" mask="url(#mask2)" />
           </svg>
           <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 relative z-10">Esgotados</p>
           <h2 className={`text-2xl font-black ${zerados > 0 ? 'text-[#BC2A1A]' : 'text-slate-900'} relative z-10`}>{zerados} itens</h2>
@@ -82,17 +94,17 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
           <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid3" width="40" height="40" patternUnits="userSpaceOnUse">
-                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1"/>
+                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1" />
               </pattern>
               <radialGradient id="fade3">
-                <stop offset="0%" stopOpacity="1"/>
-                <stop offset="100%" stopOpacity="0"/>
+                <stop offset="0%" stopOpacity="1" />
+                <stop offset="100%" stopOpacity="0" />
               </radialGradient>
               <mask id="mask3">
-                <rect width="100%" height="100%" fill="url(#fade3)"/>
+                <rect width="100%" height="100%" fill="url(#fade3)" />
               </mask>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid3)" mask="url(#mask3)"/>
+            <rect width="100%" height="100%" fill="url(#grid3)" mask="url(#mask3)" />
           </svg>
           <div className="flex flex-col h-full relative z-10">
             <div className="flex-1 flex flex-col justify-center">
@@ -111,17 +123,17 @@ export const Overview = ({ sales, products, inventory, sellers, setActiveTab, fo
           <svg className="absolute inset-0 w-full h-full opacity-[0.06]" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="grid4" width="40" height="40" patternUnits="userSpaceOnUse">
-                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1"/>
+                <rect width="40" height="40" fill="none" stroke="#BC2A1A" strokeWidth="1" />
               </pattern>
               <radialGradient id="fade4">
-                <stop offset="0%" stopOpacity="1"/>
-                <stop offset="100%" stopOpacity="0"/>
+                <stop offset="0%" stopOpacity="1" />
+                <stop offset="100%" stopOpacity="0" />
               </radialGradient>
               <mask id="mask4">
-                <rect width="100%" height="100%" fill="url(#fade4)"/>
+                <rect width="100%" height="100%" fill="url(#fade4)" />
               </mask>
             </defs>
-            <rect width="100%" height="100%" fill="url(#grid4)" mask="url(#mask4)"/>
+            <rect width="100%" height="100%" fill="url(#grid4)" mask="url(#mask4)" />
           </svg>
           <div className="flex flex-col h-full relative z-10">
             <div className="flex-1 flex flex-col justify-center">

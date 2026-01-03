@@ -56,6 +56,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
   const [sellers, setSellers] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [confirmDeleteSale, setConfirmDeleteSale] = useState<{ open: boolean; saleId: string | null }>({ open: false, saleId: null });
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
 
   // Carregar dados iniciais do Supabase
   useEffect(() => {
@@ -89,7 +90,9 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           { data: repData, error: repError },
           { data: salesData, error: salesError },
           { data: sellersData, error: sellersError },
-          { data: clientsData, error: clientsError }
+          { data: clientsData, error: clientsError },
+          { data: statsData, error: statsError },
+          { data: stockData, error: stockError }
         ] = await Promise.all([
           withRetry(async () =>
             await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
@@ -97,24 +100,44 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           withRetry(async () =>
             await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data')
           ),
+          // OTIMIZAÇÃO: Limita a 100 vendas para evitar timeout e travamento. O dashboard usa RPC para totais.
           withRetry(async () =>
-            await supabase.from('vendas').select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes')
+            await supabase.from('vendas')
+              .select('id,produto_id,quantidade,valor_total,vendedor_ids,data,cliente_id,cliente_nome,cliente_telefone,vendedores_nomes')
+              .order('data', { ascending: false })
+              .limit(100)
           ),
           withRetry(async () => await supabase.from('vendedores').select('id,nome')),
-          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone'))
+          withRetry(async () => await supabase.from('clientes').select('id,nome,telefone')),
+          // OTIMIZAÇÃO: Busca totais calculados no servidor (rápido!)
+          withRetry(async () => await supabase.rpc('get_dashboard_totals')),
+          // OTIMIZAÇÃO: Busca estoque real calculado no servidor
+          withRetry(async () => await supabase.rpc('get_products_stock'))
         ]) as any;
 
+        // Remoção do delay artificial pois agora temos performance real
         const elapsed = Date.now() - startedAt;
-        if (elapsed < minMs) {
-          await new Promise(resolve => setTimeout(resolve, minMs - elapsed));
+        if (cancelled) return;
+
+        if (prodError || repError || salesError || sellersError || clientsError || statsError || stockError) {
+          throw prodError || repError || salesError || sellersError || clientsError || statsError || stockError;
         }
 
-        if (cancelled) return;
+        // Stats do Dashboard (RPC)
+        if (statsData && statsData.length > 0) {
+          setDashboardStats({
+            totalRevenue: statsData[0].total_revenue,
+            totalProfit: statsData[0].total_profit,
+            salesCount: statsData[0].sales_count
+          });
+        }
 
-        if (cancelled) return;
-
-        if (prodError || repError || salesError || sellersError || clientsError) {
-          throw prodError || repError || salesError || sellersError || clientsError;
+        // Mapa de estoque Server-Side
+        const stockMap = new Map();
+        if (stockData) {
+          stockData.forEach((item: any) => {
+            stockMap.set(item.product_id, item.stock);
+          });
         }
 
         if (prodData) {
@@ -124,7 +147,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
             purchasePrice: p.preco_compra ?? p.purchase_price,
             basePrice: p.preco_venda ?? p.base_price,
             image: p.imagem ?? p.image,
-            active: p.ativo ?? true
+            active: p.ativo ?? true,
+            serverStock: stockMap.get(p.id) ?? 0 // Armazena estoque real vindo do banco
           })));
         }
 
@@ -398,9 +422,15 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
     }
   };
 
-  // Cálculo de Stock em tempo real
+  // Cálculo de Stock (Agora híbrido: Usa ServerStock se disponível, ou fallback local)
   const inventory = useMemo(() => {
     return products.map(product => {
+      // Se temos o estoque calculado pelo servidor (RPC), usamos ele! É 100% preciso.
+      if (product.serverStock !== undefined) {
+        return { ...product, currentStock: Number(product.serverStock) };
+      }
+
+      // Fallback (apenas se RPC falhar, mas será impreciso com vendas limitadas a 100)
       const totalReplenished = replenishments
         .filter(r => r.productId === product.id)
         .reduce((sum, r) => sum + Number(r.quantity), 0);
@@ -491,6 +521,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
                 sellers={sellers}
                 setActiveTab={setActiveTab}
                 formatCurrency={formatCurrency}
+                dashboardStats={dashboardStats}
               />
             )
           )}
