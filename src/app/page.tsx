@@ -99,21 +99,32 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       setActionError(null);
 
       try {
-        // Otimização Extrema: Limite de 20 produtos para garantir carregamento inicial
+        // Restaurado: Sem limite artificial, carregando todos os produtos (agora otimizados via Storage)
         const { data: prodData, error: prodError } = await withRetry(async () =>
-          await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo').limit(20)
+          await supabase.from('produtos').select('id,nome,preco_compra,preco_venda,imagem,ativo')
         );
 
         if (cancelled) return;
         if (prodError) throw prodError;
 
         // RPCs
-        const statsData: any[] = [];
+        let statsData: any[] = [];
         let stockData: any[] | null = null;
 
-        /* RPC Dashboard Desativada (statsData vazio) */
+        // RPC Dashboard RESTAURADA - Totalizadores de venda/lucro
+        try {
+          const statsResponse = await supabase.rpc('get_dashboard_totals');
+          if (statsResponse.error) {
+            console.warn('Erro ao carregar totais:', statsResponse.error);
+            // Fallback silencioso (statsData vazio)
+          } else {
+            statsData = statsResponse.data || [];
+          }
+        } catch (e) {
+          console.warn('RPC get_dashboard_totals falhou');
+        }
 
-        // RPC de estoque REATIVADA (essencial para não mostrar 'Esgotado')
+        // RPC de estoque (essencial para não mostrar 'Esgotado')
         try {
           const stockResponse = await supabase.rpc('get_products_stock');
           if (!stockResponse.error) stockData = stockResponse.data;
@@ -121,12 +132,12 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           console.warn('RPC get_products_stock não disponível');
         }
 
-        // Mantendo lógica mas segura para arrays vazios
+        // Dashboard Stats Update
         if (statsData && statsData.length > 0) {
           setDashboardStats({
-            totalRevenue: statsData[0].total_revenue,
-            totalProfit: statsData[0].total_profit,
-            salesCount: statsData[0].sales_count
+            totalRevenue: statsData[0].total_revenue || 0,
+            totalProfit: statsData[0].total_profit || 0,
+            salesCount: statsData[0].sales_count || 0
           });
         }
 
@@ -152,8 +163,8 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         setIsLoaded(true);
         setIsInitialLoad(false);
 
-        // Limites reduzidos para 50 para garantir estabilidade
-        const limitSafe = 50;
+        // Limites aumentados para 1000 (virtualmente sem limite para este caso de uso)
+        const limitSafe = 1000;
 
         const results = await Promise.allSettled([
           withRetry(async () => await supabase.from('reabastecimentos').select('id,produto_id,quantidade,preco_unitario,custo_total,data').order('data', { ascending: false }).limit(limitSafe)),
@@ -249,13 +260,46 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
   // Funções de Negócio com Supabase
   const saveProduct = async (data: any) => {
+    let imageUrl = data.image; // Padrão: mantêm o que veio (URL existente ou limpo)
+
+    // Se houver um NOVO arquivo de imagem para upload
+    if (data.imageFile) {
+      try {
+        const file = data.imageFile;
+        // Gerar nome único: ID_TIMESTAMP.ext
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${data.id || 'new'}-${Date.now()}.${fileExt}`;
+
+        // Upload para bucket 'produtos'
+        const { error: uploadError } = await supabase.storage
+          .from('produtos')
+          .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        // Get Public URL
+        const { data: urlData } = supabase.storage
+          .from('produtos')
+          .getPublicUrl(fileName);
+
+        imageUrl = urlData.publicUrl;
+      } catch (uploadErr) {
+        console.error('Erro no upload de imagem:', uploadErr);
+        alert('Erro ao fazer upload da imagem. O produto será salvo sem a nova foto.');
+        // Opcional: abortar salvamento ou salvar sem imagem. Vamos seguir salvando sem a NOVA imagem.
+      }
+    }
+
     if (data.id) {
       // Edição
       const { error } = await supabase.from('produtos').update({
         nome: data.name,
         preco_compra: Number(data.purchasePrice),
         preco_venda: Number(data.basePrice),
-        imagem: data.image
+        imagem: imageUrl, // URL pública
+        ativo: true // Garantir que atualização mantém ativo
       }).eq('id', data.id);
 
       if (!error) {
@@ -263,8 +307,12 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
           ...p,
           ...data,
           purchasePrice: Number(data.purchasePrice),
-          basePrice: Number(data.basePrice)
+          basePrice: Number(data.basePrice),
+          image: imageUrl
         } : p));
+      } else {
+        console.error('Erro ao atualizar produto:', error);
+        alert('Erro ao atualizar produto.');
       }
     } else {
       // Criação
@@ -272,7 +320,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         nome: data.name,
         preco_compra: Number(data.purchasePrice),
         preco_venda: Number(data.basePrice),
-        imagem: data.image || null,
+        imagem: imageUrl || null,
         ativo: true
       };
 
@@ -289,6 +337,7 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
         setProducts(prev => [...prev, formattedProduct]);
 
         if (Number(data.initialStock) > 0) {
+          // Delay pequeno para garantir que trigger ou consistência do banco não falhe (opcional)
           await addReplenishment(created.id, data.initialStock, data.purchasePrice, new Date().toISOString());
         }
       } else if (error) {

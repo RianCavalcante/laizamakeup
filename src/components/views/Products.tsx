@@ -27,7 +27,7 @@ export const ProductsView = ({
   setProducts,
   setReplenishments
 }: ProductsViewProps) => {
-  const [formData, setFormData] = useState<any>({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '' });
+  const [formData, setFormData] = useState<any>({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '', imageFile: null });
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmRemovePhoto, setConfirmRemovePhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +37,7 @@ export const ProductsView = ({
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => setFormData({ ...formData, image: reader.result as string });
+      reader.onloadend = () => setFormData({ ...formData, image: reader.result as string, imageFile: file });
       reader.readAsDataURL(file);
     }
   };
@@ -115,13 +115,14 @@ export const ProductsView = ({
       purchasePrice: product.purchasePrice,
       basePrice: product.basePrice,
       initialStock: '',
-      image: product.image
+      image: product.image,
+      imageFile: null // Reset file on edit (keeps URL in image)
     });
     document.getElementById('add-product-modal')?.classList.remove('hidden');
   };
 
   const openNewModal = () => {
-    setFormData({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '' });
+    setFormData({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '', imageFile: null });
     document.getElementById('add-product-modal')?.classList.remove('hidden');
   };
 
@@ -291,7 +292,7 @@ export const ProductsView = ({
           <button onClick={() => {
             if (formData.name && formData.basePrice && formData.purchasePrice) {
               saveProduct(formData);
-              setFormData({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '' });
+              setFormData({ id: null, name: '', purchasePrice: '', basePrice: '', initialStock: '', image: '', imageFile: null });
               document.getElementById('add-product-modal')?.classList.add('hidden');
             }
           }} className="w-full py-5 bg-[#BC2A1A] text-white rounded-[24px] font-black uppercase text-sm tracking-widest shadow-lg active:scale-95">
@@ -317,7 +318,7 @@ export const ProductsView = ({
               </button>
               <button
                 onClick={() => {
-                  setFormData({ ...formData, image: '' });
+                  setFormData({ ...formData, image: '', imageFile: null });
                   setConfirmRemovePhoto(false);
                 }}
                 className="flex-1 py-4 bg-[#BC2A1A] text-white rounded-[16px] font-black uppercase text-xs tracking-widest active:scale-95"
