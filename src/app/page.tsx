@@ -675,9 +675,6 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 }
 
 export default function App() {
-  return (
-    <ProtectedRoute>
-      <AppContent />
-    </ProtectedRoute>
-  );
+  // AUTENTICAÇÃO DESABILITADA TEMPORARIAMENTE
+  return <AppContent />;
 }
