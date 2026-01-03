@@ -677,6 +677,25 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
               <button
                 onClick={async () => {
                   if (!confirmDelete.productId) return;
+
+                  // Tenta excluir a imagem do Storage se existir
+                  const productToDelete = products.find(p => p.id === confirmDelete.productId);
+                  if (productToDelete && productToDelete.image && productToDelete.image.includes('supabase.co')) {
+                    try {
+                      // Extrai o nome do arquivo da URL (tudo depois de '/produtos/')
+                      // URL típica: .../storage/v1/object/public/produtos/ID-TIMESTAMP.jpg
+                      const parts = productToDelete.image.split('/produtos/');
+                      if (parts.length > 1) {
+                        const fileName = parts[1];
+                        console.log('Tentando excluir imagem:', fileName);
+                        await supabase.storage.from('produtos').remove([fileName]);
+                      }
+                    } catch (err) {
+                      console.warn('Erro ao excluir imagem do storage (pode já ter sido excluída):', err);
+                      // Não bloqueia a exclusão do produto
+                    }
+                  }
+
                   const { error } = await supabase.from('produtos').delete().eq('id', confirmDelete.productId);
                   if (!error) {
                     setProducts(prev => prev.filter(p => p.id !== confirmDelete.productId));
