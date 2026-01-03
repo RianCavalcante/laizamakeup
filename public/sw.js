@@ -8,30 +8,43 @@ const urlsToCache = [
 // Instalação
 self.addEventListener('install', (event) => {
   self.skipWaiting(); // Força o novo SW a assumir imediatamente
+  console.log('[SW] Installing v4 - Forçando atualização imediata');
+  // ⚡ FORÇA ATIVAÇÃO IMEDIATA - NÃO ESPERA
+  self.skipWaiting();
+  
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
-  );
-});
-
-// Ativação - Limpeza Radical de Caches Antigos
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          // Apaga qualquer cache que não seja o V3 atual
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Apagando cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll([
+        '/',
+        '/manifest.json',
+        '/icon-192.png',
+        '/icon-512.png'
+      ]);
     })
   );
-  self.clients.claim(); // Assume o controle de todas as abas imediatamente
 });
 
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating v4 - Limpando TUDO');
+  
+  event.waitUntil(
+    Promise.all([
+      // 🧹 LIMPA TODOS OS CACHES ANTIGOS (v1, v2, v3)
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log('[SW] Deletando cache antigo:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // ⚡ ASSUME CONTROLE IMEDIATO DE TODAS AS PÁGINAS ABERTAS
+      self.clients.claim()
+    ])
+  );
+});
 
 // Estratégia Network First: Tenta rede primeiro para garantir atualizações, se falhar vai pro cache (ideal para Android/PWA)
 self.addEventListener('fetch', (event) => {
