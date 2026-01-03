@@ -165,9 +165,14 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
 
         setIsLoaded(true);
         setIsInitialLoad(false);
+        setIsLoaded(true);
+        setIsInitialLoad(false);
       } catch (err: any) {
         if (cancelled) return;
-        setLoadingError('Erro ao carregar dados. Tente novamente.');
+        console.error('Erro detalhado:', err);
+        // Exibe o erro real na tela para debug
+        const errorMsg = err.message || JSON.stringify(err) || 'Erro desconhecido';
+        setLoadingError(`Erro técnico: ${errorMsg}`);
         setIsLoaded(true);
         setIsInitialLoad(false);
       }
@@ -438,10 +443,37 @@ export function AppContent({ initialTab = 'overview' }: { initialTab?: string })
       <main className="flex-1 lg:ml-80 px-5 py-8 md:px-14 md:py-14 pt-20 lg:pt-8">{/* pt-20 for mobile header */}
         <div className="max-w-4xl mx-auto pb-32 space-y-4">
           {loadingError && (
-            <div className="rounded-2xl bg-[#BC2A1A]/10 border border-[#BC2A1A]/30 text-[#BC2A1A] px-4 py-3 text-sm font-semibold">
-              {loadingError}
+            <div className="rounded-2xl bg-red-50 border border-red-200 text-red-700 px-4 py-4 text-sm font-semibold flex flex-col gap-2">
+              <p className="flex items-center gap-2">❌ {loadingError}</p>
+
+              {/* Área de Debug para Mobile */}
+              <div className="mt-2 p-3 bg-slate-900 text-slate-50 text-xs font-mono rounded overflow-x-auto whitespace-pre-wrap">
+                DEBUG INFO: {loadingError}
+                <br />
+                User Agent: {typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A'}
+              </div>
+
+              <button
+                onClick={async () => {
+                  // Hard Reset
+                  if (window.navigator && navigator.serviceWorker) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const registration of registrations) {
+                      await registration.unregister();
+                    }
+                  }
+                  localStorage.clear();
+                  sessionStorage.clear();
+                  await supabase.auth.signOut();
+                  window.location.reload();
+                }}
+                className="mt-2 w-full py-3 bg-red-600 text-white rounded-lg font-bold text-xs uppercase shadow-sm active:scale-95"
+              >
+                🚨 CLIQUE AQUI SE NÃO FUNCIONAR (Reset Total)
+              </button>
             </div>
           )}
+
           {actionError && (
             <div className="rounded-2xl bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 text-sm font-semibold">
               {actionError}
