@@ -1,34 +1,37 @@
 // Service Worker para PWA
-const CACHE_NAME = 'laiza-makeup-v2'; // Incrementando versão para forçar atualização
+const CACHE_NAME = 'laiza-makeup-v3-force-update'; // Versão V3 para garantir renovação
 const urlsToCache = [
   '/',
   '/manifest.json'
 ];
 
-// Instalação - cacheia recursos essenciais
+// Instalação
 self.addEventListener('install', (event) => {
+  self.skipWaiting(); // Força o novo SW a assumir imediatamente
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => cache.addAll(urlsToCache))
   );
-  self.skipWaiting();
 });
 
-// Ativação - limpa caches antigos
+// Ativação - Limpeza Radical de Caches Antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
+          // Apaga qualquer cache que não seja o V3 atual
           if (cacheName !== CACHE_NAME) {
+            console.log('Service Worker: Apagando cache antigo:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
-  self.clients.claim();
+  self.clients.claim(); // Assume o controle de todas as abas imediatamente
 });
+
 
 // Estratégia Network First: Tenta rede primeiro para garantir atualizações, se falhar vai pro cache (ideal para Android/PWA)
 self.addEventListener('fetch', (event) => {
